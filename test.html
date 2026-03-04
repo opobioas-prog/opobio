@@ -132,17 +132,71 @@
   .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
   .btn-outline { background: transparent; border: 1px solid var(--gold); color: var(--gold); }
   .btn-google { background: #fff; color: #444; border: 1px solid #ddd; width: 100%; max-width: 300px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-  /* TOPICS */
+  /* TOPICS & SELECTION */
+  .selection-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: var(--surface2);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+
   .topic-item {
     background: var(--surface2);
     border-radius: 10px;
     padding: 1rem;
     margin-bottom: 0.8rem;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 1rem;
     border-left: 4px solid var(--gold-dim);
+    transition: background 0.2s;
+  }
+  .topic-item:hover { background: #252d3f; }
+
+  .topic-checkbox {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: var(--gold);
+  }
+
+  .topic-content { flex: 1; }
+
+  .quiz-config-panel {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--surface2);
+    border-radius: var(--radius);
+    border: 1px solid var(--gold-dim);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .input-group label { font-size: 0.9rem; color: var(--text-muted); }
+  .input-group input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.5rem;
+    border-radius: 6px;
+    width: 80px;
+    font-family: inherit;
+    font-weight: bold;
+    text-align: center;
   }
 
   /* NAVIGATION */
@@ -220,9 +274,25 @@
       <p style="color: var(--text-muted); margin-bottom: 1rem;">No tienes temas en la nube.</p>
       <button class="btn btn-primary" onclick="showScreen('upload')">Importar Temas</button>
     </div>
+    
     <div id="topics-content">
-      <h2 style="margin-bottom: 1.2rem; font-size: 1.3rem">Mis Temas Sincronizados</h2>
+      <h2 style="margin-bottom: 1.2rem; font-size: 1.3rem">Gestión de Temario</h2>
+      
+      <div class="selection-controls">
+        <button class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.8rem" onclick="toggleSelectAll()">Seleccionar Todo</button>
+        <span id="selected-count" style="font-size: 0.85rem; color: var(--gold)">0 temas seleccionados</span>
+      </div>
+
       <div id="topics-list"></div>
+
+      <div class="quiz-config-panel" id="quiz-config-panel" style="display: none;">
+        <div class="input-group">
+          <label for="num-questions">Número de preguntas:</label>
+          <input type="number" id="num-questions" value="10" min="1" max="100">
+          <span id="max-available" style="font-size: 0.75rem; color: var(--text-muted)"></span>
+        </div>
+        <button class="btn btn-primary" style="width: 100%" onclick="startCustomQuiz()">Iniciar Test con Selección</button>
+      </div>
     </div>
   </section>
 
@@ -284,7 +354,6 @@
   import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
   import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-  // Configuración de entorno
   const firebaseConfig = JSON.parse(__firebase_config);
   const appId = typeof __app_id !== 'undefined' ? __app_id : 'entrenador-opos';
   
@@ -294,9 +363,9 @@
 
   let currentUser = null;
   let topics = [];
-  let currentQuiz = { topicIndex: -1, questions: [], currentIndex: 0, score: 0 };
+  let selectedTopicIds = new Set();
+  let currentQuiz = { questions: [], currentIndex: 0, score: 0, originalTopicIndices: [] };
 
-  // 1. AUTENTICACIÓN (Regla 3)
   const initAuth = async () => {
     updateStatus("Conectando...", "loading");
     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -310,7 +379,7 @@
     currentUser = user;
     if (user) {
       updateStatus("Sincronizado", "online");
-      syncData(); // Cargar datos de Firestore
+      syncData();
     } else {
       updateStatus("Sin sesión", "offline");
     }
@@ -318,13 +387,9 @@
 
   initAuth();
 
-  // 2. SINCRONIZACIÓN (Regla 1 y 2)
   function syncData() {
     if (!currentUser) return;
-    
-    // Escuchar cambios en la colección de temas del usuario
     const topicsRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'topics');
-    
     onSnapshot(topicsRef, (snapshot) => {
       topics = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       renderTopics();
@@ -337,8 +402,7 @@
   async function saveTopicCloud(topic) {
     if (!currentUser) return;
     try {
-      // Usamos el nombre como ID para evitar duplicados
-      const topicId = topic.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const topicId = topic.id || topic.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
       const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'topics', topicId);
       await setDoc(docRef, {
         name: topic.name,
@@ -356,10 +420,6 @@
     await deleteDoc(docRef);
   }
 
-  // 3. LÓGICA DE DRIVE (ya integrada)
-  // ... (Aquí iría la lógica de Google Drive adaptada pero la mantenemos simplificada para el ejemplo)
-
-  // 4. FUNCIONES DE INTERFAZ
   window.showScreen = (id) => {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('nav .nav-btn').forEach(b => b.classList.remove('active'));
@@ -391,8 +451,7 @@
     }).filter(q => q !== null);
 
     if (questions.length > 0) {
-      const newTopic = { name, questions, attempts: 0, lastScore: null };
-      saveTopicCloud(newTopic);
+      saveTopicCloud({ name, questions });
       showScreen('topics');
     }
   }
@@ -408,33 +467,90 @@
     }
 
     msg.style.display = 'none'; content.style.display = 'block';
-    list.innerHTML = topics.map((t, i) => `
+    
+    list.innerHTML = topics.map((t) => `
       <div class="topic-item">
-        <div>
+        <input type="checkbox" class="topic-checkbox" data-id="${t.id}" ${selectedTopicIds.has(t.id) ? 'checked' : ''}>
+        <div class="topic-content">
           <h3>${t.name}</h3>
           <p style="font-size:0.8rem; color:var(--text-muted)">${t.questions.length} preguntas • ${t.attempts} veces hecho</p>
         </div>
-        <div style="display:flex; gap:0.5rem">
-          <button class="btn btn-outline" style="padding:0.5rem" onclick="window.deleteTopic('${t.id}')">🗑️</button>
-          <button class="btn btn-primary" onclick="window.startQuiz(${i})">Entrenar</button>
-        </div>
+        <button class="btn btn-outline" style="padding:0.5rem" onclick="window.deleteTopic('${t.id}')">🗑️</button>
       </div>
     `).join('');
+
+    // Listeners para checkboxes
+    document.querySelectorAll('.topic-checkbox').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const id = e.target.dataset.id;
+        if (e.target.checked) selectedTopicIds.add(id);
+        else selectedTopicIds.delete(id);
+        updateSelectionUI();
+      });
+    });
+
+    updateSelectionUI();
   }
 
-  window.deleteTopic = async (id) => {
-    if (confirm("¿Eliminar este tema de la nube?")) await deleteTopicCloud(id);
+  function updateSelectionUI() {
+    const countLabel = document.getElementById('selected-count');
+    const configPanel = document.getElementById('quiz-config-panel');
+    const numInput = document.getElementById('num-questions');
+    const maxLabel = document.getElementById('max-available');
+    
+    const count = selectedTopicIds.size;
+    countLabel.innerText = `${count} tema${count !== 1 ? 's' : ''} seleccionado${count !== 1 ? 's' : ''}`;
+    
+    if (count > 0) {
+      configPanel.style.display = 'block';
+      let totalQ = 0;
+      topics.filter(t => selectedTopicIds.has(t.id)).forEach(t => totalQ += t.questions.length);
+      maxLabel.innerText = `Máximo: ${totalQ} preguntas`;
+      numInput.max = totalQ;
+      if (parseInt(numInput.value) > totalQ) numInput.value = totalQ;
+    } else {
+      configPanel.style.display = 'none';
+    }
+  }
+
+  window.toggleSelectAll = () => {
+    if (selectedTopicIds.size === topics.length) {
+      selectedTopicIds.clear();
+    } else {
+      topics.forEach(t => selectedTopicIds.add(t.id));
+    }
+    renderTopics();
   };
 
-  window.startQuiz = (idx) => {
-    const t = topics[idx];
+  window.deleteTopic = async (id) => {
+    if (confirm("¿Eliminar este tema de la nube?")) {
+      selectedTopicIds.delete(id);
+      await deleteTopicCloud(id);
+    }
+  };
+
+  window.startCustomQuiz = () => {
+    const numRequested = parseInt(document.getElementById('num-questions').value) || 10;
+    const selectedTopics = topics.filter(t => selectedTopicIds.has(t.id));
+    
+    let pool = [];
+    selectedTopics.forEach((t, idx) => {
+      // Guardamos el indice original para actualizar stats luego
+      const qs = t.questions.map(q => ({ ...q, sourceTopicId: t.id }));
+      pool = [...pool, ...qs];
+    });
+
+    if (pool.length === 0) return;
+
     currentQuiz = { 
-      topicIndex: idx, 
-      questions: shuffle([...t.questions]).slice(0, 10), 
+      questions: shuffle(pool).slice(0, numRequested), 
       currentIndex: 0, 
-      score: 0 
+      score: 0,
+      topicIdsInvolved: Array.from(selectedTopicIds)
     };
-    document.getElementById('quiz-topic-name').innerText = t.name;
+
+    const nameDisplay = selectedTopics.length === 1 ? selectedTopics[0].name : "Mix Personalizado";
+    document.getElementById('quiz-topic-name').innerText = nameDisplay;
     showScreen('quiz');
     showQuestion();
   };
@@ -473,7 +589,7 @@
     } else {
       btn.classList.add('wrong');
       const idx = ['A','B','C','D'].indexOf(q.correct);
-      btns[idx].classList.add('correct');
+      if (btns[idx]) btns[idx].classList.add('correct');
       feed.className = 'feedback show is-wrong';
       feed.innerHTML = `<strong>Incorrecto.</strong> Era la ${q.correct}.<br>${q.explanation}`;
     }
@@ -488,15 +604,22 @@
   };
 
   async function finishQuiz() {
-    const t = topics[currentQuiz.topicIndex];
-    const finalScore = (currentQuiz.score / currentQuiz.questions.length) * 100;
+    const finalPercent = (currentQuiz.score / currentQuiz.questions.length) * 100;
     
-    // Actualizar en nube
-    t.attempts++;
-    t.lastScore = finalScore;
-    await saveTopicCloud(t);
+    // Actualizar intentos en todos los temas involucrados
+    for (const tid of currentQuiz.topicIdsInvolved) {
+      const topic = topics.find(t => t.id === tid);
+      if (topic) {
+        topic.attempts++;
+        // Solo actualizamos la nota si es un test de ese tema específico, 
+        // o la mantenemos como "nota del último mix" si prefieres.
+        // Aquí actualizaremos la nota global de ese tema con este resultado.
+        topic.lastScore = finalPercent; 
+        await saveTopicCloud(topic);
+      }
+    }
 
-    openModal("Sesión finalizada", `Has acertado ${currentQuiz.score} de ${currentQuiz.questions.length}.<br>Puntuación: <strong>${finalScore.toFixed(0)}%</strong>`);
+    openModal("Test Finalizado", `Resultado: ${currentQuiz.score} aciertos de ${currentQuiz.questions.length}.<br>Puntuación media: <strong>${finalPercent.toFixed(0)}%</strong>`);
     showScreen('stats');
   }
 
@@ -557,13 +680,11 @@
 
 <script>
   // LÓGICA DE GOOGLE DRIVE (SIMPLIFICADA)
-  // Nota: Estas claves deben ser rellenadas por el usuario
   const CLIENT_ID = ''; 
   const API_KEY = ''; 
 
   window.handleAuthClick = () => {
     openModal("Configuración Requerida", "Para usar Google Drive, asegúrate de haber pegado tu CLIENT_ID y API_KEY en el código. Si ya lo has hecho, sigue el flujo de Google.");
-    // Aquí iría el resto del código GIS de la versión anterior
   };
 </script>
 
