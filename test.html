@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrenador de Oposiciones + Google Drive</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b27;
+    --surface2: #1e2536;
+    --border: #2a3347;
+    --gold: #d4a843;
+    --gold-dim: #a07830;
+    --text: #e8e2d5;
+    --text-muted: #7a8399;
+    --success: #4eb87a;
+    --error: #e05c5c;
+    --info: #5b9bd5;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 2rem 1rem;
+    text-align: center;
+    background: linear-gradient(to bottom, #1a1f2e, var(--bg));
+    border-bottom: 1px solid var(--border);
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    color: var(--gold);
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.5px;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    width: 100%;
+    flex: 1;
+  }
+
+  .screen { display: none; animation: fadeIn 0.4s ease-out; }
+  .screen.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  /* UPLOAD SECTION */
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 3rem 1.5rem;
+    text-align: center;
+    transition: all 0.3s;
+    cursor: pointer;
+    background: rgba(255,255,255,0.02);
+  }
+  .upload-area:hover { border-color: var(--gold); background: rgba(212,168,67,0.05); }
+  .upload-area i { font-size: 3rem; color: var(--gold-dim); margin-bottom: 1rem; display: block; }
+  
+  .drive-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    gap: 0.5rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+  .btn-primary { background: var(--gold); color: #000; }
+  .btn-primary:hover { background: #e5b954; transform: translateY(-1px); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-outline { background: transparent; border: 1px solid var(--gold); color: var(--gold); }
+  .btn-outline:hover { background: rgba(212,168,67,0.1); }
+  .btn-google { background: #fff; color: #444; border: 1px solid #ddd; }
+  .btn-google:hover { background: #f1f1f1; }
+
+  /* TOPIC LIST */
+  .topic-item {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid var(--gold-dim);
+  }
+  .topic-info h3 { margin-bottom: 0.3rem; font-size: 1.1rem; }
+  .topic-info p { font-size: 0.85rem; color: var(--text-muted); }
+
+  /* DRIVE FILE LIST */
+  #drive-file-list {
+    margin-top: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #00000033;
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+  .drive-file-row {
+    padding: 0.8rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .drive-file-row:last-child { border-bottom: none; }
+
+  /* QUIZ AREA */
+  .question-header { display: flex; justify-content: space-between; margin-bottom: 2rem; color: var(--text-muted); font-size: 0.9rem; }
+  .question-text { font-size: 1.3rem; line-height: 1.5; margin-bottom: 2rem; font-weight: 500; }
+  .options-grid { display: grid; gap: 1rem; }
+  .option-btn {
+    text-align: left;
+    padding: 1.2rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .option-btn:hover:not(:disabled) { border-color: var(--gold-dim); background: #252d3f; }
+  .option-btn.correct { background: rgba(78,184,122,0.15); border-color: var(--success); }
+  .option-btn.wrong { background: rgba(224,92,92,0.15); border-color: var(--error); }
+  .option-btn:disabled { cursor: default; }
+
+  .feedback { margin-top: 1.5rem; padding: 1.2rem; border-radius: 10px; display: none; line-height: 1.5; font-size: 0.95rem; }
+  .feedback.show { display: block; }
+  .feedback.is-correct { background: rgba(78,184,122,0.1); border: 1px solid var(--success); }
+  .feedback.is-wrong { background: rgba(224,92,92,0.1); border: 1px solid var(--error); }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    display: flex;
+    justify-content: space-around;
+    padding: 0.8rem;
+    border-top: 1px solid var(--border);
+    z-index: 100;
+  }
+  .nav-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    flex: 1;
+  }
+  .nav-btn.active { color: var(--gold); }
+  .nav-btn svg { width: 20px; height: 20px; }
+
+  /* MODAL */
+  #modal-overlay {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 200;
+  }
+  .modal { background: var(--surface); padding: 2rem; border-radius: var(--radius); width: 90%; max-width: 400px; text-align: center; }
+
+  .status-msg { margin-top: 1rem; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem; }
+  .loading { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Academia Digital</h1>
+  <p style="color: var(--text-muted)">Entrenador Personal de Oposiciones</p>
+</header>
+
+<div class="container">
+
+  <!-- PANTALLA CARGA -->
+  <section id="screen-upload" class="screen active">
+    <div class="card">
+      <h2 style="margin-bottom: 1.5rem">Cargar Temarios</h2>
+      <div class="upload-area" onclick="document.getElementById('file-input').click()">
+        <i>📁</i>
+        <p>Haz clic para subir archivos <strong>.txt</strong></p>
+        <span style="font-size: 0.8rem; color: var(--text-muted)">Formato: ID | Pregunta | A | B | C | D | Correcta | Explicación</span>
+        <input type="file" id="file-input" multiple accept=".txt" style="display:none" onchange="handleFiles(this.files)">
+      </div>
+
+      <div class="drive-section">
+        <p style="margin-bottom: 1rem; color: var(--text-muted)">O importa desde tu nube</p>
+        <button id="auth-btn" class="btn btn-google" onclick="handleAuthClick()">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_HiRes_Logo.png" width="18" alt="G">
+          Conectar Google Drive
+        </button>
+        <button id="signout-btn" class="btn btn-secondary" style="display:none" onclick="handleSignoutClick()">Cerrar Sesión Google</button>
+        
+        <div id="drive-status" class="status-msg"></div>
+        <div id="drive-file-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PANTALLA TEMARIOS -->
+  <section id="screen-topics" class="screen">
+    <div id="no-topics-msg" style="text-align:center; padding: 3rem 0;">
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">No hay temarios cargados aún.</p>
+      <button class="btn btn-outline" onclick="showScreen('upload')">Ir a Cargar</button>
+    </div>
+    <div id="topics-content">
+      <h2 style="margin-bottom: 1.5rem">Mis Temas</h2>
+      <div id="topics-list"></div>
+    </div>
+  </section>
+
+  <!-- PANTALLA TEST -->
+  <section id="screen-quiz" class="screen">
+    <div class="card" id="quiz-container">
+      <div class="question-header">
+        <span id="quiz-topic-name">Tema</span>
+        <span id="quiz-progress">1 / 10</span>
+      </div>
+      <div id="quiz-content">
+        <div class="question-text" id="q-text">Cargando pregunta...</div>
+        <div class="options-grid" id="q-options"></div>
+        <div id="q-feedback" class="feedback"></div>
+        <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+          <button id="next-btn" class="btn btn-primary" style="display:none" onclick="nextQuestion()">Siguiente Pregunta</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PANTALLA ESTADÍSTICAS -->
+  <section id="screen-stats" class="screen">
+    <div class="card">
+      <h2 style="margin-bottom: 1.5rem">Mi Progreso</h2>
+      <div id="stats-container"></div>
+      <button class="btn btn-secondary" style="margin-top: 1rem; width: 100%" onclick="resetStats()">Reiniciar Estadísticas</button>
+    </div>
+  </section>
+
+</div>
+
+<nav id="main-nav">
+  <button class="nav-btn active" onclick="showScreen('upload')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+    Carga
+  </button>
+  <button class="nav-btn" onclick="showScreen('topics')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5V4.5z"/></svg>
+    Temas
+  </button>
+  <button class="nav-btn" onclick="showScreen('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+    Progreso
+  </button>
+</nav>
+
+<div id="modal-overlay">
+  <div class="modal">
+    <h3 id="modal-title">Título</h3>
+    <p id="modal-text" style="margin: 1rem 0; color: var(--text-muted)"></p>
+    <button class="btn btn-primary" onclick="closeModal()">Entendido</button>
+  </div>
+</div>
+
+<!-- LIBRERIAS GOOGLE -->
+<script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+
+<script>
+// ═══════════════════════════════════════════
+//  CONFIGURACIÓN GOOGLE DRIVE
+// ═══════════════════════════════════════════
+// DEBES COMPLETAR ESTO CON TUS CREDENCIALES
+const CLIENT_ID = ''; 
+const API_KEY = ''; 
+const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+
+let tokenClient;
+let gapiInited = false;
+let gisInited = false;
+
+function gapiLoaded() {
+  gapi.load('client', async () => {
+    await gapi.client.init({
+      apiKey: API_KEY,
+      discoveryDocs: [DISCOVERY_DOC],
+    });
+    gapiInited = true;
+    checkBeforeStart();
+  });
+}
+
+function gisLoaded() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: '', // se define al llamar
+  });
+  gisInited = true;
+  checkBeforeStart();
+}
+
+function checkBeforeStart() {
+  if (gapiInited && gisInited) {
+    document.getElementById('auth-btn').style.display = 'inline-flex';
+  }
+}
+
+async function handleAuthClick() {
+  tokenClient.callback = async (resp) => {
+    if (resp.error !== undefined) throw (resp);
+    document.getElementById('auth-btn').style.display = 'none';
+    document.getElementById('signout-btn').style.display = 'inline-flex';
+    listDriveFiles();
+  };
+
+  if (gapi.client.getToken() === null) {
+    tokenClient.requestAccessToken({prompt: 'consent'});
+  } else {
+    tokenClient.requestAccessToken({prompt: ''});
+  }
+}
+
+function handleSignoutClick() {
+  const token = gapi.client.getToken();
+  if (token !== null) {
+    google.accounts.oauth2.revoke(token.access_token);
+    gapi.client.setToken('');
+    document.getElementById('auth-btn').style.display = 'inline-flex';
+    document.getElementById('signout-btn').style.display = 'none';
+    document.getElementById('drive-file-list').innerHTML = '';
+    document.getElementById('drive-status').innerText = '';
+  }
+}
+
+async function listDriveFiles() {
+  const status = document.getElementById('drive-status');
+  status.innerHTML = '<span class="loading">Buscando archivos .txt en tu Drive...</span>';
+  
+  try {
+    // Buscamos archivos TXT que no estén en la papelera
+    const response = await gapi.client.drive.files.list({
+      q: "mimeType = 'text/plain' and trashed = false",
+      fields: 'files(id, name, size)',
+    });
+    const files = response.result.files;
+    if (!files || files.length == 0) {
+      status.innerText = 'No se encontraron archivos .txt.';
+      return;
+    }
+
+    status.innerText = `Se encontraron ${files.length} archivos.`;
+    const listDiv = document.getElementById('drive-file-list');
+    listDiv.innerHTML = '';
+    
+    files.forEach(file => {
+      const row = document.createElement('div');
+      row.className = 'drive-file-row';
+      row.innerHTML = `
+        <span>${file.name}</span>
+        <button class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.8rem" onclick="downloadDriveFile('${file.id}', '${file.name}')">Importar</button>
+      `;
+      listDiv.appendChild(row);
+    });
+  } catch (err) {
+    status.innerText = 'Error al conectar con Drive.';
+    console.error(err);
+  }
+}
+
+async function downloadDriveFile(fileId, fileName) {
+  const status = document.getElementById('drive-status');
+  status.innerHTML = `<span class="loading">Importando ${fileName}...</span>`;
+  
+  try {
+    const response = await gapi.client.drive.files.get({
+      fileId: fileId,
+      alt: 'media',
+    });
+    
+    processFileContent(fileName, response.body);
+    status.innerHTML = `<span style="color:var(--success)">✓ ${fileName} importado correctamente</span>`;
+    setTimeout(() => { showScreen('topics'); }, 1000);
+  } catch (err) {
+    status.innerText = 'Error al descargar el archivo.';
+    console.error(err);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  LÓGICA DE LA APP
+// ═══════════════════════════════════════════
+
+let topics = [];
+let currentQuiz = {
+  topicIndex: -1,
+  questions: [],
+  currentIndex: 0,
+  score: 0,
+  results: [] // para estadísticas
+};
+
+// Cargar desde LocalStorage al iniciar
+const saved = localStorage.getItem('opo_trainer_data');
+if (saved) topics = JSON.parse(saved);
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+
+  const navMap = { upload: 0, topics: 1, stats: 2 };
+  const navBtns = document.querySelectorAll('.nav-btn');
+  if (navMap[id] !== undefined) navBtns[navMap[id]]?.classList.add('active');
+
+  if (id === 'topics') renderTopics();
+  if (id === 'stats') renderStats();
+}
+
+function handleFiles(fileList) {
+  Array.from(fileList).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => processFileContent(file.name, e.target.result);
+    reader.readAsText(file);
+  });
+}
+
+function processFileContent(fileName, text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 5);
+  const name = fileName.replace('.txt', '');
+  
+  const questions = lines.map(line => {
+    const parts = line.split('|').map(p => p.trim());
+    if (parts.length < 7) return null;
+    return {
+      id: parts[0],
+      text: parts[1],
+      options: [parts[2], parts[3], parts[4], parts[5]],
+      correct: parts[6].toUpperCase(), // A, B, C, D
+      explanation: parts[7] || ""
+    };
+  }).filter(q => q !== null);
+
+  if (questions.length === 0) return;
+
+  // Evitar duplicados por nombre
+  const existingIdx = topics.findIndex(t => t.name === name);
+  const newTopic = { name, questions, lastScore: null, attempts: 0 };
+  
+  if (existingIdx >= 0) {
+    topics[existingIdx] = newTopic;
+  } else {
+    topics.push(newTopic);
+  }
+
+  saveData();
+  renderTopics();
+}
+
+function renderTopics() {
+  const container = document.getElementById('topics-list');
+  const emptyMsg = document.getElementById('no-topics-msg');
+  const content = document.getElementById('topics-content');
+
+  if (topics.length === 0) {
+    emptyMsg.style.display = 'block';
+    content.style.display = 'none';
+    return;
+  }
+
+  emptyMsg.style.display = 'none';
+  content.style.display = 'block';
+  container.innerHTML = '';
+
+  topics.forEach((topic, idx) => {
+    const div = document.createElement('div');
+    div.className = 'topic-item';
+    div.innerHTML = `
+      <div class="topic-info">
+        <h3>${topic.name}</h3>
+        <p>${topic.questions.length} preguntas • ${topic.attempts} intentos</p>
+      </div>
+      <div style="display:flex; gap:0.5rem">
+        <button class="btn btn-outline" style="padding:0.5rem" onclick="deleteTopic(${idx})">🗑️</button>
+        <button class="btn btn-primary" onclick="startQuiz(${idx})">Entrenar</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function startQuiz(idx) {
+  const topic = topics[idx];
+  currentQuiz = {
+    topicIndex: idx,
+    questions: shuffle(topic.questions).slice(0, 20), // Máximo 20 preguntas aleatorias
+    currentIndex: 0,
+    score: 0,
+    results: []
+  };
+
+  document.getElementById('quiz-topic-name').innerText = topic.name;
+  showScreen('quiz');
+  showQuestion();
+}
+
+function showQuestion() {
+  const q = currentQuiz.questions[currentQuiz.currentIndex];
+  document.getElementById('quiz-progress').innerText = `${currentQuiz.currentIndex + 1} / ${currentQuiz.questions.length}`;
+  document.getElementById('q-text').innerText = q.text;
+  
+  const optionsDiv = document.getElementById('q-options');
+  optionsDiv.innerHTML = '';
+  
+  const letters = ['A', 'B', 'C', 'D'];
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<strong>${letters[i]}.</strong> ${opt}`;
+    btn.onclick = () => checkAnswer(letters[i], btn);
+    optionsDiv.appendChild(btn);
+  });
+
+  document.getElementById('q-feedback').className = 'feedback';
+  document.getElementById('next-btn').style.display = 'none';
+}
+
+function checkAnswer(letter, btn) {
+  const q = currentQuiz.questions[currentQuiz.currentIndex];
+  const allBtns = document.querySelectorAll('.option-btn');
+  const feedback = document.getElementById('q-feedback');
+  
+  allBtns.forEach(b => b.disabled = true);
+
+  const isCorrect = letter === q.correct;
+  if (isCorrect) {
+    btn.classList.add('correct');
+    currentQuiz.score++;
+    feedback.innerHTML = `<strong>¡Correcto!</strong><br>${q.explanation}`;
+    feedback.className = 'feedback show is-correct';
+  } else {
+    btn.classList.add('wrong');
+    // Marcar la correcta
+    const correctIdx = ['A','B','C','D'].indexOf(q.correct);
+    allBtns[correctIdx].classList.add('correct');
+    feedback.innerHTML = `<strong>Incorrecto.</strong> La respuesta era la ${q.correct}.<br>${q.explanation}`;
+    feedback.className = 'feedback show is-wrong';
+  }
+
+  currentQuiz.results.push(isCorrect);
+  document.getElementById('next-btn').style.display = 'inline-flex';
+}
+
+function nextQuestion() {
+  currentQuiz.currentIndex++;
+  if (currentQuiz.currentIndex < currentQuiz.questions.length) {
+    showQuestion();
+  } else {
+    finishQuiz();
+  }
+}
+
+function finishQuiz() {
+  const topic = topics[currentQuiz.topicIndex];
+  topic.attempts++;
+  topic.lastScore = (currentQuiz.score / currentQuiz.questions.length) * 100;
+  saveData();
+
+  openModal(
+    "Test Finalizado", 
+    `Has acertado ${currentQuiz.score} de ${currentQuiz.questions.length} preguntas (${topic.lastScore.toFixed(1)}%).`
+  );
+  showScreen('stats');
+}
+
+function renderStats() {
+  const container = document.getElementById('stats-container');
+  if (topics.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted)">No hay datos suficientes.</p>';
+    return;
+  }
+
+  let totalAttempts = 0;
+  let html = '<div style="display:grid; gap:1rem;">';
+
+  topics.forEach(t => {
+    totalAttempts += t.attempts;
+    const scoreColor = t.lastScore === null ? 'var(--text-muted)' : (t.lastScore >= 50 ? 'var(--success)' : 'var(--error)');
+    html += `
+      <div style="background:var(--surface2); padding:1rem; border-radius:8px; border-left: 4px solid ${scoreColor}">
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem">
+          <strong>${t.name}</strong>
+          <span style="color:${scoreColor}">${t.lastScore !== null ? t.lastScore.toFixed(0)+'%' : '---'}</span>
+        </div>
+        <div style="height:6px; background:var(--border); border-radius:3px; overflow:hidden">
+          <div style="width:${t.lastScore || 0}%; height:100%; background:${scoreColor}"></div>
+        </div>
+      </div>
+    `;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function deleteTopic(idx) {
+  if (confirm(`¿Eliminar temario "${topics[idx].name}"?`)) {
+    topics.splice(idx, 1);
+    saveData();
+    renderTopics();
+  }
+}
+
+function resetStats() {
+  topics.forEach(t => {
+    t.attempts = 0;
+    t.lastScore = null;
+  });
+  saveData();
+  renderStats();
+}
+
+function saveData() {
+  localStorage.setItem('opo_trainer_data', JSON.stringify(topics));
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function openModal(title, text) {
+  document.getElementById('modal-title').innerText = title;
+  document.getElementById('modal-text').innerText = text;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').style.display = 'none';
+}
+
+// Iniciar
+window.onload = () => {
+  showScreen('upload');
+};
+</script>
+
+</body>
+</html>
