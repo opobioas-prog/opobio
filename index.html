@@ -5,13 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Entrenador de Oposiciones</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
 <style>
   :root {
     --bg: #0d1117;
     --surface: #161b27;
     --surface2: #1e2536;
     --border: #2a3347;
-    --gold: #d4a843; 
+    --gold: #d4a843;
     --gold-dim: #a07830;
     --text: #e8e2d5;
     --text-muted: #7a8399;
@@ -957,13 +959,107 @@
       <p>Carga tus ficheros .txt con las preguntas y empieza a practicar.</p>
     </div>
 
-    <div class="drop-zone" id="drop-zone">
-      <input type="file" accept=".txt" multiple id="file-input">
-      <div class="drop-icon">📄</div>
-      <h3>Arrastra aquí tus archivos .txt</h3>
-      <p>O haz clic para seleccionarlos · Puedes cargar varios a la vez</p>
+    <!-- Source tabs -->
+    <div class="source-tabs">
+      <button class="source-tab active" id="tab-local" onclick="switchSource('local')">📂 Archivos locales</button>
+      <button class="source-tab" id="tab-drive" onclick="switchSource('drive')">☁️ Google Drive</button>
     </div>
 
+    <!-- ── LOCAL PANEL ── -->
+    <div class="source-tab-content active" id="panel-local">
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" accept=".txt" multiple id="file-input">
+        <div class="drop-icon">📄</div>
+        <h3>Arrastra aquí tus archivos .txt</h3>
+        <p>O haz clic para seleccionarlos · Puedes cargar varios a la vez</p>
+      </div>
+    </div>
+
+    <!-- ── DRIVE PANEL ── -->
+    <div class="source-tab-content" id="panel-drive">
+      <div class="drive-panel">
+
+        <!-- STEP 1: Config -->
+        <div class="drive-step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <label>Client ID de Google</label>
+            <div class="step-desc">
+              Obtén tu Client ID en <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a> → Credenciales → OAuth 2.0
+            </div>
+            <input class="drive-input" id="drive-client-id" type="text" placeholder="xxxxxxxx.apps.googleusercontent.com" oninput="saveDriveConfig()">
+          </div>
+        </div>
+
+        <!-- STEP 2: API Key -->
+        <div class="drive-step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <label>API Key</label>
+            <div class="step-desc">
+              En Google Cloud Console → Credenciales → Claves de API. Activa <strong>Google Drive API</strong> y <strong>Google Picker API</strong> en Biblioteca.
+            </div>
+            <input class="drive-input" id="drive-api-key" type="text" placeholder="AIzaSy..." oninput="saveDriveConfig()">
+          </div>
+        </div>
+
+        <!-- STEP 3: Auth + Folder -->
+        <div class="drive-step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <label>Conectar con Google</label>
+            <div class="step-desc">Inicia sesión con tu cuenta de Google para acceder a tus carpetas de Drive.</div>
+
+            <div id="drive-user-badge" class="drive-user-badge">
+              <img id="drive-avatar" class="drive-user-avatar" src="" alt="">
+              <span id="drive-username" class="drive-user-name"></span>
+              <button class="btn-logout" onclick="driveLogout()">Cerrar sesión</button>
+            </div>
+
+            <button class="btn-drive" id="btn-drive-login" onclick="driveLogin()">
+              <svg class="btn-drive-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              Conectar con Google
+            </button>
+
+            <div class="drive-status" id="drive-auth-status"></div>
+          </div>
+        </div>
+
+        <!-- STEP 4: Select folder -->
+        <div class="drive-step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <label>Seleccionar carpeta de Drive</label>
+            <div class="step-desc">Elige la carpeta que contiene tus archivos .txt de preguntas.</div>
+            <button class="btn-drive" id="btn-pick-folder" onclick="openFolderPicker()" disabled>
+              <span style="font-size:1.1rem">📁</span> Elegir carpeta de Drive
+            </button>
+            <div class="drive-status" id="drive-folder-status"></div>
+          </div>
+        </div>
+
+        <!-- STEP 5: Load -->
+        <div class="drive-step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <label>Cargar archivos .txt</label>
+            <div class="step-desc">Descarga y procesa todos los ficheros .txt de la carpeta seleccionada.</div>
+            <button class="btn-primary" id="btn-load-drive" onclick="loadDriveFiles()" disabled style="margin-top:10px">
+              ☁️ Cargar desde Drive
+            </button>
+            <div class="drive-status" id="drive-load-status"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Loaded files (shared between local and drive) -->
     <div class="loaded-files" id="loaded-files-panel" style="display:none">
       <div class="loaded-files-header">
         <h4 id="loaded-count">0 temas cargados</h4>
@@ -1695,6 +1791,247 @@ function clearStats() {
   renderStats();
   showToast('Estadísticas reiniciadas');
 }
+
+// ═══════════════════════════════════════════
+//  GOOGLE DRIVE INTEGRATION
+// ═══════════════════════════════════════════
+
+// ── Config (stored in localStorage for convenience) ──
+const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+let driveAccessToken = null;
+let drivePickedFolderId = null;
+let drivePickedFolderName = null;
+let gapiReady = false;
+
+// Persist credentials between sessions
+function saveDriveConfig() {
+  const cid = document.getElementById('drive-client-id').value.trim();
+  const key = document.getElementById('drive-api-key').value.trim();
+  localStorage.setItem('drive_client_id', cid);
+  localStorage.setItem('drive_api_key', key);
+}
+function loadDriveConfig() {
+  const cid = localStorage.getItem('drive_client_id') || '';
+  const key = localStorage.getItem('drive_api_key') || '';
+  document.getElementById('drive-client-id').value = cid;
+  document.getElementById('drive-api-key').value = key;
+}
+
+// ── Switch source tabs ──
+function switchSource(src) {
+  document.querySelectorAll('.source-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.source-tab-content').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + src).classList.add('active');
+  document.getElementById('panel-' + src).classList.add('active');
+  if (src === 'drive') {
+    loadDriveConfig();
+    initGapiIfNeeded();
+  }
+}
+
+// ── Init gapi ──
+function initGapiIfNeeded() {
+  if (gapiReady) return;
+  if (typeof gapi === 'undefined') {
+    setTimeout(initGapiIfNeeded, 500);
+    return;
+  }
+  gapi.load('client:picker', () => {
+    gapiReady = true;
+  });
+}
+
+// ── Login ──
+function driveLogin() {
+  const clientId = document.getElementById('drive-client-id').value.trim();
+  const apiKey   = document.getElementById('drive-api-key').value.trim();
+
+  if (!clientId || !apiKey) {
+    setDriveStatus('drive-auth-status', 'error', '⚠ Introduce primero el Client ID y la API Key');
+    return;
+  }
+
+  if (typeof google === 'undefined' || typeof gapi === 'undefined') {
+    setDriveStatus('drive-auth-status', 'error', '⚠ Las APIs de Google aún no han cargado. Espera un momento y reintenta.');
+    return;
+  }
+
+  setDriveStatus('drive-auth-status', 'loading', '<span class="spinner"></span> Iniciando sesión…');
+
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: DRIVE_SCOPES,
+    callback: (tokenResponse) => {
+      if (tokenResponse.error) {
+        setDriveStatus('drive-auth-status', 'error', '✗ Error: ' + tokenResponse.error);
+        return;
+      }
+      driveAccessToken = tokenResponse.access_token;
+
+      // Get user info
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + driveAccessToken }
+      })
+      .then(r => r.json())
+      .then(info => {
+        document.getElementById('drive-username').textContent = info.name || info.email || 'Usuario';
+        const avatar = document.getElementById('drive-avatar');
+        if (info.picture) { avatar.src = info.picture; avatar.style.display = 'block'; }
+        else avatar.style.display = 'none';
+        document.getElementById('drive-user-badge').classList.add('show');
+        document.getElementById('btn-drive-login').style.display = 'none';
+        setDriveStatus('drive-auth-status', 'connected', '✓ Sesión iniciada correctamente');
+        document.getElementById('btn-pick-folder').disabled = false;
+
+        // Init gapi client for Drive API
+        gapi.client.init({ apiKey, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] })
+          .then(() => { gapi.client.setToken({ access_token: driveAccessToken }); })
+          .catch(err => console.warn('gapi.client.init:', err));
+      })
+      .catch(() => {
+        setDriveStatus('drive-auth-status', 'connected', '✓ Conectado');
+        document.getElementById('btn-pick-folder').disabled = false;
+      });
+    }
+  });
+  client.requestAccessToken({ prompt: 'consent' });
+}
+
+function driveLogout() {
+  if (driveAccessToken && typeof google !== 'undefined') {
+    google.accounts.oauth2.revoke(driveAccessToken, () => {});
+  }
+  driveAccessToken = null;
+  drivePickedFolderId = null;
+  drivePickedFolderName = null;
+  document.getElementById('drive-user-badge').classList.remove('show');
+  document.getElementById('btn-drive-login').style.display = 'flex';
+  document.getElementById('btn-pick-folder').disabled = true;
+  document.getElementById('btn-load-drive').disabled = true;
+  setDriveStatus('drive-auth-status', '', '');
+  setDriveStatus('drive-folder-status', '', '');
+  setDriveStatus('drive-load-status', '', '');
+}
+
+// ── Folder Picker ──
+function openFolderPicker() {
+  const apiKey   = document.getElementById('drive-api-key').value.trim();
+  const clientId = document.getElementById('drive-client-id').value.trim();
+
+  if (!driveAccessToken) {
+    setDriveStatus('drive-folder-status', 'error', '⚠ Primero inicia sesión con Google');
+    return;
+  }
+
+  if (!gapiReady) {
+    setDriveStatus('drive-folder-status', 'error', '⚠ La API de Google aún no está lista. Espera un momento.');
+    return;
+  }
+
+  const picker = new google.picker.PickerBuilder()
+    .setAppId(clientId.split('-')[0])
+    .setOAuthToken(driveAccessToken)
+    .setDeveloperKey(apiKey)
+    .setLocale('es')
+    .addView(new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+      .setSelectFolderEnabled(true)
+      .setMimeTypes('application/vnd.google-apps.folder'))
+    .setTitle('Selecciona la carpeta con tus archivos .txt')
+    .setCallback(pickerCallback)
+    .build();
+
+  picker.setVisible(true);
+}
+
+function pickerCallback(data) {
+  if (data.action === google.picker.Action.PICKED) {
+    const folder = data.docs[0];
+    drivePickedFolderId   = folder.id;
+    drivePickedFolderName = folder.name;
+    setDriveStatus('drive-folder-status', 'connected', `✓ Carpeta seleccionada: <strong>${escHtml(folder.name)}</strong>`);
+    document.getElementById('btn-load-drive').disabled = false;
+  }
+}
+
+// ── Load files from folder ──
+async function loadDriveFiles() {
+  if (!drivePickedFolderId) {
+    setDriveStatus('drive-load-status', 'error', '⚠ Primero selecciona una carpeta');
+    return;
+  }
+
+  setDriveStatus('drive-load-status', 'loading', '<span class="spinner"></span> Buscando archivos .txt…');
+  document.getElementById('btn-load-drive').disabled = true;
+
+  try {
+    // List .txt files in folder
+    const query = `'${drivePickedFolderId}' in parents and mimeType='text/plain' and trashed=false`;
+    const res = await gapi.client.drive.files.list({
+      q: query,
+      fields: 'files(id,name)',
+      pageSize: 200
+    });
+
+    const files = res.result.files;
+    if (!files || files.length === 0) {
+      setDriveStatus('drive-load-status', 'error', '✗ No se encontraron archivos .txt en esa carpeta');
+      document.getElementById('btn-load-drive').disabled = false;
+      return;
+    }
+
+    setDriveStatus('drive-load-status', 'loading', `<span class="spinner"></span> Cargando ${files.length} archivo(s)…`);
+
+    // Fetch each file content
+    const results = await Promise.all(files.map(async file => {
+      const contentRes = await gapi.client.drive.files.get({
+        fileId: file.id,
+        alt: 'media'
+      });
+      return { text: contentRes.body, filename: file.name };
+    }));
+
+    let loaded = 0;
+    for (const { text, filename } of results) {
+      if (!filename.toLowerCase().endsWith('.txt')) continue;
+      const existing = topics.findIndex(t => t.filename === filename);
+      const parsed = parseFile(text, filename);
+      if (parsed.questions.length > 0) {
+        if (existing >= 0) topics[existing] = parsed;
+        else topics.push(parsed);
+        loaded++;
+      }
+    }
+
+    renderFileList();
+    document.getElementById('btn-go-topics').disabled = topics.length === 0;
+
+    if (loaded > 0) {
+      setDriveStatus('drive-load-status', 'connected', `✓ ${loaded} archivo(s) cargados desde Drive · <strong>${drivePickedFolderName}</strong>`);
+      showToast(`✓ ${loaded} archivos cargados desde Drive`);
+    } else {
+      setDriveStatus('drive-load-status', 'error', '✗ Los archivos encontrados no contienen preguntas en el formato esperado');
+    }
+  } catch (err) {
+    console.error('Drive error:', err);
+    setDriveStatus('drive-load-status', 'error', '✗ Error al acceder a Drive: ' + (err.result?.error?.message || err.message || 'Error desconocido'));
+  }
+
+  document.getElementById('btn-load-drive').disabled = false;
+}
+
+// ── Helper ──
+function setDriveStatus(id, type, html) {
+  const el = document.getElementById(id);
+  el.className = 'drive-status' + (type ? ' ' + type : '');
+  el.innerHTML = html;
+  if (!type) el.style.display = 'none';
+}
+
+// Init on load
+window.addEventListener('load', () => {
+  loadDriveConfig();
+  setTimeout(initGapiIfNeeded, 1000);
+});
 
 // ═══════════════════════════════════════════
 //  NAVIGATION
