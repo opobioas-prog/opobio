@@ -979,36 +979,12 @@
     <div class="source-tab-content" id="panel-drive">
       <div class="drive-panel">
 
-        <!-- STEP 1: Config -->
+        <!-- STEP 1: Conectar -->
         <div class="drive-step">
           <div class="step-num">1</div>
           <div class="step-content">
-            <label>Client ID de Google</label>
-            <div class="step-desc">
-              Obtén tu Client ID en <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a> → Credenciales → OAuth 2.0
-            </div>
-            <input class="drive-input" id="drive-client-id" type="text" placeholder="xxxxxxxx.apps.googleusercontent.com" oninput="saveDriveConfig()">
-          </div>
-        </div>
-
-        <!-- STEP 2: API Key -->
-        <div class="drive-step">
-          <div class="step-num">2</div>
-          <div class="step-content">
-            <label>API Key</label>
-            <div class="step-desc">
-              En Google Cloud Console → Credenciales → Claves de API. Activa <strong>Google Drive API</strong> y <strong>Google Picker API</strong> en Biblioteca.
-            </div>
-            <input class="drive-input" id="drive-api-key" type="text" placeholder="AIzaSy..." oninput="saveDriveConfig()">
-          </div>
-        </div>
-
-        <!-- STEP 3: Auth + Folder -->
-        <div class="drive-step">
-          <div class="step-num">3</div>
-          <div class="step-content">
             <label>Conectar con Google</label>
-            <div class="step-desc">Inicia sesión con tu cuenta de Google para acceder a tus carpetas de Drive.</div>
+            <div class="step-desc">Inicia sesión con tu cuenta de Google para acceder a tu Drive.</div>
 
             <div id="drive-user-badge" class="drive-user-badge">
               <img id="drive-avatar" class="drive-user-avatar" src="" alt="">
@@ -1025,27 +1001,26 @@
               </svg>
               Conectar con Google
             </button>
-
             <div class="drive-status" id="drive-auth-status"></div>
           </div>
         </div>
 
-        <!-- STEP 4: Select folder -->
+        <!-- STEP 2: Elegir carpeta -->
         <div class="drive-step">
-          <div class="step-num">4</div>
+          <div class="step-num">2</div>
           <div class="step-content">
             <label>Seleccionar carpeta de Drive</label>
             <div class="step-desc">Elige la carpeta que contiene tus archivos .txt de preguntas.</div>
             <button class="btn-drive" id="btn-pick-folder" onclick="openFolderPicker()" disabled>
-              <span style="font-size:1.1rem">📁</span> Elegir carpeta de Drive
+              <span style="font-size:1.1rem">📁</span> Elegir carpeta
             </button>
             <div class="drive-status" id="drive-folder-status"></div>
           </div>
         </div>
 
-        <!-- STEP 5: Load -->
+        <!-- STEP 3: Cargar -->
         <div class="drive-step">
-          <div class="step-num">5</div>
+          <div class="step-num">3</div>
           <div class="step-content">
             <label>Cargar archivos .txt</label>
             <div class="step-desc">Descarga y procesa todos los ficheros .txt de la carpeta seleccionada.</div>
@@ -1059,7 +1034,7 @@
       </div>
     </div>
 
-    <!-- Loaded files (shared between local and drive) -->
+    <!-- Archivos cargados -->
     <div class="loaded-files" id="loaded-files-panel" style="display:none">
       <div class="loaded-files-header">
         <h4 id="loaded-count">0 temas cargados</h4>
@@ -1796,70 +1771,41 @@ function clearStats() {
 //  GOOGLE DRIVE INTEGRATION
 // ═══════════════════════════════════════════
 
-// ── Config (stored in localStorage for convenience) ──
-const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
-let driveAccessToken = null;
+const DRIVE_CLIENT_ID = '718563989467-lt8fqbuvu3ouqf0b8at4g67n1llnv1iv.apps.googleusercontent.com';
+const DRIVE_API_KEY   = 'AIzaSyDEokH4aksi1MxR6LSqet7_rpRC_1gNlEQ';
+const DRIVE_SCOPES    = 'https://www.googleapis.com/auth/drive.readonly';
+
+let driveAccessToken    = null;
 let drivePickedFolderId = null;
 let drivePickedFolderName = null;
 let gapiReady = false;
 
-// Persist credentials between sessions
-function saveDriveConfig() {
-  const cid = document.getElementById('drive-client-id').value.trim();
-  const key = document.getElementById('drive-api-key').value.trim();
-  localStorage.setItem('drive_client_id', cid);
-  localStorage.setItem('drive_api_key', key);
-}
-function loadDriveConfig() {
-  const cid = localStorage.getItem('drive_client_id') || '';
-  const key = localStorage.getItem('drive_api_key') || '';
-  document.getElementById('drive-client-id').value = cid;
-  document.getElementById('drive-api-key').value = key;
-}
-
-// ── Switch source tabs ──
+// ── Tabs ──
 function switchSource(src) {
   document.querySelectorAll('.source-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.source-tab-content').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-' + src).classList.add('active');
   document.getElementById('panel-' + src).classList.add('active');
-  if (src === 'drive') {
-    loadDriveConfig();
-    initGapiIfNeeded();
-  }
+  if (src === 'drive') initGapiIfNeeded();
 }
 
 // ── Init gapi ──
 function initGapiIfNeeded() {
   if (gapiReady) return;
-  if (typeof gapi === 'undefined') {
-    setTimeout(initGapiIfNeeded, 500);
-    return;
-  }
-  gapi.load('client:picker', () => {
-    gapiReady = true;
-  });
+  if (typeof gapi === 'undefined') { setTimeout(initGapiIfNeeded, 500); return; }
+  gapi.load('client:picker', () => { gapiReady = true; });
 }
 
 // ── Login ──
 function driveLogin() {
-  const clientId = document.getElementById('drive-client-id').value.trim();
-  const apiKey   = document.getElementById('drive-api-key').value.trim();
-
-  if (!clientId || !apiKey) {
-    setDriveStatus('drive-auth-status', 'error', '⚠ Introduce primero el Client ID y la API Key');
-    return;
-  }
-
   if (typeof google === 'undefined' || typeof gapi === 'undefined') {
     setDriveStatus('drive-auth-status', 'error', '⚠ Las APIs de Google aún no han cargado. Espera un momento y reintenta.');
     return;
   }
-
   setDriveStatus('drive-auth-status', 'loading', '<span class="spinner"></span> Iniciando sesión…');
 
   const client = google.accounts.oauth2.initTokenClient({
-    client_id: clientId,
+    client_id: DRIVE_CLIENT_ID,
     scope: DRIVE_SCOPES,
     callback: (tokenResponse) => {
       if (tokenResponse.error) {
@@ -1868,7 +1814,6 @@ function driveLogin() {
       }
       driveAccessToken = tokenResponse.access_token;
 
-      // Get user info
       fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: 'Bearer ' + driveAccessToken }
       })
@@ -1883,10 +1828,12 @@ function driveLogin() {
         setDriveStatus('drive-auth-status', 'connected', '✓ Sesión iniciada correctamente');
         document.getElementById('btn-pick-folder').disabled = false;
 
-        // Init gapi client for Drive API
-        gapi.client.init({ apiKey, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] })
-          .then(() => { gapi.client.setToken({ access_token: driveAccessToken }); })
-          .catch(err => console.warn('gapi.client.init:', err));
+        gapi.client.init({
+          apiKey: DRIVE_API_KEY,
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+        }).then(() => {
+          gapi.client.setToken({ access_token: driveAccessToken });
+        }).catch(err => console.warn('gapi.client.init:', err));
       })
       .catch(() => {
         setDriveStatus('drive-auth-status', 'connected', '✓ Conectado');
@@ -1915,31 +1862,26 @@ function driveLogout() {
 
 // ── Folder Picker ──
 function openFolderPicker() {
-  const apiKey   = document.getElementById('drive-api-key').value.trim();
-  const clientId = document.getElementById('drive-client-id').value.trim();
-
   if (!driveAccessToken) {
     setDriveStatus('drive-folder-status', 'error', '⚠ Primero inicia sesión con Google');
     return;
   }
-
   if (!gapiReady) {
-    setDriveStatus('drive-folder-status', 'error', '⚠ La API de Google aún no está lista. Espera un momento.');
+    setDriveStatus('drive-folder-status', 'error', '⚠ La API aún no está lista, espera un momento.');
     return;
   }
-
   const picker = new google.picker.PickerBuilder()
-    .setAppId(clientId.split('-')[0])
     .setOAuthToken(driveAccessToken)
-    .setDeveloperKey(apiKey)
+    .setDeveloperKey(DRIVE_API_KEY)
     .setLocale('es')
-    .addView(new google.picker.DocsView(google.picker.ViewId.FOLDERS)
-      .setSelectFolderEnabled(true)
-      .setMimeTypes('application/vnd.google-apps.folder'))
+    .addView(
+      new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+        .setSelectFolderEnabled(true)
+        .setMimeTypes('application/vnd.google-apps.folder')
+    )
     .setTitle('Selecciona la carpeta con tus archivos .txt')
     .setCallback(pickerCallback)
     .build();
-
   picker.setVisible(true);
 }
 
@@ -1948,23 +1890,21 @@ function pickerCallback(data) {
     const folder = data.docs[0];
     drivePickedFolderId   = folder.id;
     drivePickedFolderName = folder.name;
-    setDriveStatus('drive-folder-status', 'connected', `✓ Carpeta seleccionada: <strong>${escHtml(folder.name)}</strong>`);
+    setDriveStatus('drive-folder-status', 'connected', `✓ Carpeta: <strong>${escHtml(folder.name)}</strong>`);
     document.getElementById('btn-load-drive').disabled = false;
   }
 }
 
-// ── Load files from folder ──
+// ── Load files ──
 async function loadDriveFiles() {
   if (!drivePickedFolderId) {
     setDriveStatus('drive-load-status', 'error', '⚠ Primero selecciona una carpeta');
     return;
   }
-
   setDriveStatus('drive-load-status', 'loading', '<span class="spinner"></span> Buscando archivos .txt…');
   document.getElementById('btn-load-drive').disabled = true;
 
   try {
-    // List .txt files in folder
     const query = `'${drivePickedFolderId}' in parents and mimeType='text/plain' and trashed=false`;
     const res = await gapi.client.drive.files.list({
       q: query,
@@ -1981,12 +1921,8 @@ async function loadDriveFiles() {
 
     setDriveStatus('drive-load-status', 'loading', `<span class="spinner"></span> Cargando ${files.length} archivo(s)…`);
 
-    // Fetch each file content
     const results = await Promise.all(files.map(async file => {
-      const contentRes = await gapi.client.drive.files.get({
-        fileId: file.id,
-        alt: 'media'
-      });
+      const contentRes = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
       return { text: contentRes.body, filename: file.name };
     }));
 
@@ -2006,20 +1942,19 @@ async function loadDriveFiles() {
     document.getElementById('btn-go-topics').disabled = topics.length === 0;
 
     if (loaded > 0) {
-      setDriveStatus('drive-load-status', 'connected', `✓ ${loaded} archivo(s) cargados desde Drive · <strong>${drivePickedFolderName}</strong>`);
+      setDriveStatus('drive-load-status', 'connected', `✓ ${loaded} archivo(s) cargados · <strong>${escHtml(drivePickedFolderName)}</strong>`);
       showToast(`✓ ${loaded} archivos cargados desde Drive`);
     } else {
-      setDriveStatus('drive-load-status', 'error', '✗ Los archivos encontrados no contienen preguntas en el formato esperado');
+      setDriveStatus('drive-load-status', 'error', '✗ Los archivos no contienen preguntas en el formato esperado');
     }
   } catch (err) {
     console.error('Drive error:', err);
-    setDriveStatus('drive-load-status', 'error', '✗ Error al acceder a Drive: ' + (err.result?.error?.message || err.message || 'Error desconocido'));
+    setDriveStatus('drive-load-status', 'error', '✗ Error: ' + (err.result?.error?.message || err.message || 'Error desconocido'));
   }
 
   document.getElementById('btn-load-drive').disabled = false;
 }
 
-// ── Helper ──
 function setDriveStatus(id, type, html) {
   const el = document.getElementById(id);
   el.className = 'drive-status' + (type ? ' ' + type : '');
@@ -2027,11 +1962,7 @@ function setDriveStatus(id, type, html) {
   if (!type) el.style.display = 'none';
 }
 
-// Init on load
-window.addEventListener('load', () => {
-  loadDriveConfig();
-  setTimeout(initGapiIfNeeded, 1000);
-});
+window.addEventListener('load', () => setTimeout(initGapiIfNeeded, 800));
 
 // ═══════════════════════════════════════════
 //  NAVIGATION
@@ -2085,3 +2016,4 @@ function showToast(msg) {
 </script>
 </body>
 </html>
+
