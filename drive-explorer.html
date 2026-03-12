@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drive Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b27;
+    --surface2: #1e2536;
+    --border: #2a3347;
+    --gold: #d4a843;
+    --gold-dim: #a07830;
+    --text: #e8e2d5;
+    --text-muted: #7a8399;
+    --success: #4eb87a;
+    --error: #e05c5c;
+    --info: #5b9bd5;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    gap: 16px;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--gold);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .logo span {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    margin-left: 8px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* ── SEARCH BAR ── */
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    max-width: 380px;
+  }
+  .search-wrap svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+  #search-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px 8px 38px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color .2s;
+  }
+  #search-input:focus { border-color: var(--gold-dim); }
+  #search-input::placeholder { color: var(--text-muted); }
+
+  /* ── USER BADGE ── */
+  .user-badge {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .user-badge.show { display: flex; }
+  .user-badge img {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+  }
+  .user-badge .uname { color: var(--text); font-weight: 500; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .btn-logout {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all .15s;
+  }
+  .btn-logout:hover { color: var(--error); border-color: var(--error); }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #login-screen.hidden { display: none; }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 56px 48px;
+    text-align: center;
+    max-width: 420px;
+    width: 90%;
+  }
+  .login-card .drive-icon {
+    font-size: 3.5rem;
+    margin-bottom: 20px;
+    display: block;
+  }
+  .login-card h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+  .login-card p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 36px;
+  }
+
+  .btn-login {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gold);
+    color: #0d1117;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    letter-spacing: 0.01em;
+  }
+  .btn-login:hover { background: #e0b84e; transform: translateY(-1px); box-shadow: 0 4px 24px rgba(212,168,67,.3); }
+  .btn-login:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .login-note {
+    margin-top: 20px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  /* ── MAIN EXPLORER ── */
+  #explorer-screen {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+  }
+  #explorer-screen.show { display: flex; }
+
+  /* ── BREADCRUMB ── */
+  .breadcrumb-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 14px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    flex-shrink: 0;
+  }
+  .breadcrumb-item {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    white-space: nowrap;
+  }
+  .breadcrumb-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all .15s;
+  }
+  .breadcrumb-btn:hover { color: var(--gold); background: rgba(212,168,67,.08); }
+  .breadcrumb-btn.current { color: var(--text); cursor: default; }
+  .breadcrumb-btn.current:hover { background: none; color: var(--text); }
+  .breadcrumb-sep {
+    color: var(--border);
+    margin: 0 2px;
+    font-size: 0.9rem;
+    user-select: none;
+  }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 32px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  .toolbar-left { display: flex; align-items: center; gap: 10px; }
+  .toolbar-right { display: flex; align-items: center; gap: 8px; }
+
+  .folder-info {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .folder-info strong { color: var(--text); }
+
+  .btn-icon {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 7px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+  }
+  .btn-icon:hover { color: var(--gold); border-color: var(--gold-dim); }
+  .btn-icon.active { color: var(--gold); border-color: var(--gold-dim); background: rgba(212,168,67,.08); }
+
+  .view-toggle { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .view-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all .15s;
+    border-right: 1px solid var(--border);
+  }
+  .view-btn:last-child { border-right: none; }
+  .view-btn:hover { color: var(--gold); background: rgba(212,168,67,.06); }
+  .view-btn.active { color: var(--gold); background: rgba(212,168,67,.1); }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    padding: 8px 32px;
+    font-size: 0.8rem;
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .status-bar.loading { color: var(--info); }
+  .status-bar.error { color: var(--error); }
+  .status-bar.ok { color: var(--success); }
+
+  /* ── FILE AREA ── */
+  #file-area {
+    flex: 1;
+    padding: 24px 32px;
+    overflow-y: auto;
+  }
+
+  /* LIST VIEW */
+  .file-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  .file-table th {
+    text-align: left;
+    padding: 8px 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .file-table th:hover { color: var(--gold); }
+  .file-table th .sort-arrow { margin-left: 4px; opacity: 0.5; }
+  .file-table th.sorted .sort-arrow { opacity: 1; color: var(--gold); }
+
+  .file-table tr.file-row {
+    border-bottom: 1px solid var(--border);
+    transition: background .12s;
+    cursor: pointer;
+  }
+  .file-table tr.file-row:hover { background: var(--surface); }
+  .file-table tr.file-row:last-child { border-bottom: none; }
+  .file-table td {
+    padding: 10px 12px;
+    vertical-align: middle;
+  }
+
+  .cell-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+  }
+  .file-icon { font-size: 1.15rem; flex-shrink: 0; }
+  .file-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 340px; }
+  .cell-size { color: var(--text-muted); white-space: nowrap; }
+  .cell-date { color: var(--text-muted); white-space: nowrap; font-size: 0.82rem; }
+  .cell-type { color: var(--text-muted); white-space: nowrap; font-size: 0.78rem; }
+  .cell-actions { text-align: right; }
+
+  .btn-dl {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .btn-dl:hover { color: var(--success); border-color: var(--success); background: rgba(78,184,122,.06); }
+  .folder-row .btn-dl { display: none; }
+
+  /* GRID VIEW */
+  .file-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .grid-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 16px;
+    cursor: pointer;
+    transition: all .2s;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+  }
+  .grid-card:hover { border-color: var(--gold-dim); background: var(--surface2); }
+  .grid-card .grid-icon { font-size: 2.4rem; }
+  .grid-card .grid-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+    max-width: 100%;
+  }
+  .grid-card .grid-size { font-size: 0.72rem; color: var(--text-muted); }
+  .grid-card .grid-dl {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s;
+  }
+  .grid-card:hover .grid-dl:not(.hidden) { display: flex; }
+  .grid-card .grid-dl:hover { color: var(--success); border-color: var(--success); background: rgba(78,184,122,.1); }
+
+  /* EMPTY / LOADING states */
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .empty-icon { font-size: 3rem; margin-bottom: 16px; }
+  .empty-state p { font-size: 0.9rem; }
+
+  /* SPINNER */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--info);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    z-index: 9999;
+    animation: fadeup .25s ease;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  }
+  @keyframes fadeup { from { opacity: 0; transform: translateX(-50%) translateY(10px); } }
+
+  /* SEARCH RESULTS BADGE */
+  .search-badge {
+    background: rgba(212,168,67,.12);
+    color: var(--gold);
+    border: 1px solid var(--gold-dim);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
+  /* SORT HEADER ACTIVE */
+  th.sorted { color: var(--gold); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 640px) {
+    header { padding: 12px 16px; }
+    .breadcrumb-bar, .toolbar, #file-area { padding-left: 16px; padding-right: 16px; }
+    .search-wrap { display: none; }
+    .cell-size, .cell-date, .cell-type { display: none; }
+    .file-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo">Drive Explorer <span>Google Drive</span></div>
+
+  <div class="search-wrap">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input type="text" id="search-input" placeholder="Buscar en esta carpeta…" autocomplete="off">
+  </div>
+
+  <div class="header-right">
+    <div class="user-badge" id="user-badge">
+      <img id="user-avatar" src="" alt="" style="display:none">
+      <span class="uname" id="user-name"></span>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+    <button class="btn-login" id="btn-login" onclick="doLogin()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+      </svg>
+      Conectar con Google
+    </button>
+  </div>
+</header>
+
+<!-- ── LOGIN SCREEN ── -->
+<div id="login-screen">
+  <div class="login-card">
+    <span class="drive-icon">📁</span>
+    <h1>Drive Explorer</h1>
+    <p>Accede a tus archivos y carpetas de Google Drive directamente desde el navegador, sin instalar nada.</p>
+    <button class="btn-login" id="btn-login-big" onclick="doLogin()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+      </svg>
+      Iniciar sesión con Google
+    </button>
+    <p class="login-note">Solo lectura · Tus datos no salen de tu navegador</p>
+  </div>
+</div>
+
+<!-- ── EXPLORER SCREEN ── -->
+<div id="explorer-screen">
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar" id="breadcrumb"></div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <span class="folder-info" id="folder-info"></span>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn-icon" id="btn-up" onclick="navigateUp()" title="Carpeta anterior">
+        ← Atrás
+      </button>
+      <div class="view-toggle">
+        <button class="view-btn active" id="btn-list" onclick="setView('list')" title="Vista lista">☰</button>
+        <button class="view-btn" id="btn-grid" onclick="setView('grid')" title="Vista cuadrícula">⊞</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar" id="status-bar"></div>
+
+  <!-- Files -->
+  <div id="file-area">
+    <div class="empty-state">
+      <div class="empty-icon">📂</div>
+      <p>Iniciando…</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONFIG — usa las mismas credenciales que tu app
+// ══════════════════════════════════════════════
+const CLIENT_ID = '718563989467-lt8fqbuvu3ouqf0b8at4g67n1llnv1iv.apps.googleusercontent.com';
+const API_KEY   = 'AIzaSyDEokH4aksi1MxR6LSqet7_rpRC_1gNlEQ';
+const SCOPES    = 'https://www.googleapis.com/auth/drive.readonly';
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let accessToken = null;
+let gapiReady = false;
+let currentView = 'list'; // 'list' | 'grid'
+let sortCol = 'name';
+let sortAsc = true;
+
+// Navigation stack: [{id, name}]
+let navStack = [{ id: 'root', name: 'Mi Drive' }];
+
+// Files cache for current folder
+let currentFiles = [];
+
+// Search debounce
+let searchTimer = null;
+
+// ══════════════════════════════════════════════
+//  GAPI INIT
+// ══════════════════════════════════════════════
+function waitGapi(cb) {
+  if (gapiReady) { cb(); return; }
+  const t = setInterval(() => { if (gapiReady) { clearInterval(t); cb(); } }, 200);
+}
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    if (typeof gapi === 'undefined') { setTimeout(initGapi, 500); return; }
+    initGapi();
+  }, 800);
+});
+
+function initGapi() {
+  if (gapiReady) return;
+  if (typeof gapi === 'undefined') { setTimeout(initGapi, 500); return; }
+  gapi.load('client', () => {
+    gapi.client.init({ apiKey: API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] })
+      .then(() => { gapiReady = true; })
+      .catch(err => console.warn('gapi init:', err));
+  });
+}
+
+// ══════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════
+function doLogin() {
+  if (typeof google === 'undefined' || typeof gapi === 'undefined') {
+    showToast('Cargando APIs de Google, espera un momento…');
+    setTimeout(doLogin, 1200);
+    return;
+  }
+
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { showToast('Error: ' + resp.error); return; }
+      accessToken = resp.access_token;
+      gapi.client.setToken({ access_token: accessToken });
+
+      // Get user info
+      try {
+        const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: 'Bearer ' + accessToken }
+        }).then(r => r.json());
+
+        document.getElementById('user-name').textContent = info.name || info.email || 'Usuario';
+        const av = document.getElementById('user-avatar');
+        if (info.picture) { av.src = info.picture; av.style.display = 'block'; }
+      } catch(_) {}
+
+      document.getElementById('user-badge').classList.add('show');
+      document.getElementById('btn-login').style.display = 'none';
+
+      // Show explorer
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('explorer-screen').classList.add('show');
+
+      // Load root
+      navStack = [{ id: 'root', name: 'Mi Drive' }];
+      renderBreadcrumb();
+      loadFolder('root');
+    }
+  });
+  client.requestAccessToken({ prompt: 'consent' });
+}
+
+function doLogout() {
+  if (accessToken && typeof google !== 'undefined') {
+    google.accounts.oauth2.revoke(accessToken, () => {});
+  }
+  accessToken = null;
+  currentFiles = [];
+  navStack = [{ id: 'root', name: 'Mi Drive' }];
+
+  document.getElementById('user-badge').classList.remove('show');
+  document.getElementById('btn-login').style.display = '';
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('explorer-screen').classList.remove('show');
+}
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function navigateTo(folderId, folderName) {
+  // Push to stack
+  navStack.push({ id: folderId, name: folderName });
+  renderBreadcrumb();
+  loadFolder(folderId);
+  clearSearch();
+}
+
+function navigateUp() {
+  if (navStack.length <= 1) return;
+  navStack.pop();
+  renderBreadcrumb();
+  loadFolder(navStack[navStack.length - 1].id);
+  clearSearch();
+}
+
+function navigateToIndex(idx) {
+  if (idx >= navStack.length - 1) return; // already there
+  navStack = navStack.slice(0, idx + 1);
+  renderBreadcrumb();
+  loadFolder(navStack[navStack.length - 1].id);
+  clearSearch();
+}
+
+function renderBreadcrumb() {
+  const bc = document.getElementById('breadcrumb');
+  bc.innerHTML = navStack.map((item, idx) => {
+    const isLast = idx === navStack.length - 1;
+    return `<div class="breadcrumb-item">
+      ${idx > 0 ? '<span class="breadcrumb-sep">›</span>' : ''}
+      <button class="breadcrumb-btn ${isLast ? 'current' : ''}" onclick="navigateToIndex(${idx})">
+        ${idx === 0 ? '🏠 ' : ''}${escHtml(item.name)}
+      </button>
+    </div>`;
+  }).join('');
+
+  document.getElementById('btn-up').style.display = navStack.length > 1 ? '' : 'none';
+}
+
+// ══════════════════════════════════════════════
+//  LOAD FOLDER
+// ══════════════════════════════════════════════
+async function loadFolder(folderId) {
+  setStatus('loading', '<span class="spinner"></span> Cargando…');
+  document.getElementById('file-area').innerHTML = '';
+  document.getElementById('folder-info').textContent = '';
+
+  waitGapi(async () => {
+    try {
+      let allFiles = [];
+      let pageToken = null;
+
+      do {
+        const params = {
+          q: `'${folderId}' in parents and trashed=false`,
+          fields: 'nextPageToken, files(id,name,mimeType,size,modifiedTime,iconLink,webContentLink,webViewLink,shortcutDetails)',
+          orderBy: 'folder,name',
+          pageSize: 1000,
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true
+        };
+        if (pageToken) params.pageToken = pageToken;
+
+        const res = await gapi.client.drive.files.list(params);
+        const data = res.result;
+        allFiles = allFiles.concat(data.files || []);
+        pageToken = data.nextPageToken || null;
+      } while (pageToken);
+
+      currentFiles = allFiles;
+      renderFiles(currentFiles);
+      setStatus('ok', `${allFiles.length} elemento${allFiles.length !== 1 ? 's' : ''}`);
+    } catch (err) {
+      console.error(err);
+      const msg = err.result?.error?.message || err.message || 'Error desconocido';
+      setStatus('error', '✗ ' + msg);
+      document.getElementById('file-area').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠️</div>
+          <p>Error al cargar: ${escHtml(msg)}</p>
+        </div>`;
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+//  RENDER FILES
+// ══════════════════════════════════════════════
+function renderFiles(files) {
+  const area = document.getElementById('file-area');
+  if (files.length === 0) {
+    area.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>Carpeta vacía</p></div>`;
+    return;
+  }
+
+  // Sort
+  const sorted = sortFiles(files);
+
+  if (currentView === 'list') {
+    renderList(sorted, area);
+  } else {
+    renderGrid(sorted, area);
+  }
+}
+
+function sortFiles(files) {
+  return [...files].sort((a, b) => {
+    // Folders always first
+    const aIsFolder = a.mimeType === 'application/vnd.google-apps.folder';
+    const bIsFolder = b.mimeType === 'application/vnd.google-apps.folder';
+    if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1;
+
+    let av, bv;
+    if (sortCol === 'name') { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
+    else if (sortCol === 'size') { av = parseInt(a.size) || 0; bv = parseInt(b.size) || 0; }
+    else if (sortCol === 'date') { av = a.modifiedTime || ''; bv = b.modifiedTime || ''; }
+    else { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
+
+    if (av < bv) return sortAsc ? -1 : 1;
+    if (av > bv) return sortAsc ? 1 : -1;
+    return 0;
+  });
+}
+
+function renderList(files, area) {
+  const arrowFor = col => {
+    if (sortCol !== col) return '<span class="sort-arrow">↕</span>';
+    return `<span class="sort-arrow">${sortAsc ? '↑' : '↓'}</span>`;
+  };
+
+  const rows = files.map(f => {
+    const isFolder = f.mimeType === 'application/vnd.google-apps.folder';
+    const icon = fileIcon(f.mimeType);
+    const size = isFolder ? '—' : formatSize(f.size);
+    const date = formatDate(f.modifiedTime);
+    const typeName = mimeLabel(f.mimeType);
+
+    const dlBtn = isFolder ? '' :
+      `<button class="btn-dl" onclick="event.stopPropagation(); downloadFile('${f.id}','${escAttr(f.name)}','${escAttr(f.mimeType)}')" title="Descargar">⬇ Descargar</button>`;
+
+    return `<tr class="file-row ${isFolder ? 'folder-row' : ''}"
+               onclick="${isFolder ? `navigateTo('${f.id}','${escAttr(f.name)}')` : `previewFile('${f.id}','${escAttr(f.name)}','${escAttr(f.mimeType)}')`}">
+      <td class="cell-name">
+        <span class="file-icon">${icon}</span>
+        <span class="file-name-text" title="${escAttr(f.name)}">${escHtml(f.name)}</span>
+      </td>
+      <td class="cell-type">${typeName}</td>
+      <td class="cell-size">${size}</td>
+      <td class="cell-date">${date}</td>
+      <td class="cell-actions">${dlBtn}</td>
+    </tr>`;
+  }).join('');
+
+  area.innerHTML = `<table class="file-table">
+    <thead>
+      <tr>
+        <th onclick="setSort('name')" class="${sortCol==='name'?'sorted':''}">Nombre ${arrowFor('name')}</th>
+        <th>Tipo</th>
+        <th onclick="setSort('size')" class="${sortCol==='size'?'sorted':''}">Tamaño ${arrowFor('size')}</th>
+        <th onclick="setSort('date')" class="${sortCol==='date'?'sorted':''}">Modificado ${arrowFor('date')}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function renderGrid(files, area) {
+  const cards = files.map(f => {
+    const isFolder = f.mimeType === 'application/vnd.google-apps.folder';
+    const icon = fileIcon(f.mimeType);
+    const size = isFolder ? '' : formatSize(f.size);
+
+    const dlBtn = isFolder ? `<button class="grid-dl hidden" style="display:none"></button>` :
+      `<button class="grid-dl" onclick="event.stopPropagation(); downloadFile('${f.id}','${escAttr(f.name)}','${escAttr(f.mimeType)}')" title="Descargar">⬇</button>`;
+
+    return `<div class="grid-card"
+               onclick="${isFolder ? `navigateTo('${f.id}','${escAttr(f.name)}')` : `previewFile('${f.id}','${escAttr(f.name)}','${escAttr(f.mimeType)}')`}">
+      ${dlBtn}
+      <div class="grid-icon">${icon}</div>
+      <div class="grid-name" title="${escAttr(f.name)}">${escHtml(f.name)}</div>
+      ${size ? `<div class="grid-size">${size}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  area.innerHTML = `<div class="file-grid">${cards}</div>`;
+}
+
+// ══════════════════════════════════════════════
+//  DOWNLOAD / PREVIEW
+// ══════════════════════════════════════════════
+async function downloadFile(fileId, fileName, mimeType) {
+  const googleTypes = {
+    'application/vnd.google-apps.document': { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', ext: 'docx' },
+    'application/vnd.google-apps.spreadsheet': { mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ext: 'xlsx' },
+    'application/vnd.google-apps.presentation': { mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', ext: 'pptx' },
+    'application/vnd.google-apps.drawing': { mime: 'image/svg+xml', ext: 'svg' },
+    'application/vnd.google-apps.script': { mime: 'application/vnd.google-apps.script+json', ext: 'json' },
+  };
+
+  showToast('⬇ Descargando ' + fileName + '…');
+
+  try {
+    let url;
+
+    if (googleTypes[mimeType]) {
+      // Export Google Workspace files
+      const exp = googleTypes[mimeType];
+      url = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=${encodeURIComponent(exp.mime)}`;
+      if (!fileName.endsWith('.' + exp.ext)) fileName += '.' + exp.ext;
+    } else {
+      // Direct download
+      url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true`;
+    }
+
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    showToast('✓ Descargado: ' + fileName);
+  } catch (err) {
+    console.error(err);
+    showToast('✗ Error al descargar: ' + (err.message || 'Error desconocido'));
+  }
+}
+
+function previewFile(fileId, fileName, mimeType) {
+  // For non-folder files: open in Drive viewer
+  const viewUrl = `https://drive.google.com/file/d/${fileId}/view`;
+  window.open(viewUrl, '_blank');
+}
+
+// ══════════════════════════════════════════════
+//  SORT
+// ══════════════════════════════════════════════
+function setSort(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+  renderFiles(currentFiles);
+}
+
+// ══════════════════════════════════════════════
+//  VIEW TOGGLE
+// ══════════════════════════════════════════════
+function setView(v) {
+  currentView = v;
+  document.getElementById('btn-list').classList.toggle('active', v === 'list');
+  document.getElementById('btn-grid').classList.toggle('active', v === 'grid');
+  renderFiles(currentFiles);
+}
+
+// ══════════════════════════════════════════════
+//  SEARCH
+// ══════════════════════════════════════════════
+document.getElementById('search-input').addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => applySearch(e.target.value.trim()), 250);
+});
+
+function applySearch(q) {
+  if (!q) {
+    renderFiles(currentFiles);
+    setStatus('ok', `${currentFiles.length} elemento${currentFiles.length !== 1 ? 's' : ''}`);
+    return;
+  }
+  const lower = q.toLowerCase();
+  const filtered = currentFiles.filter(f => f.name.toLowerCase().includes(lower));
+  renderFiles(filtered);
+  setStatus('ok', `${filtered.length} resultado${filtered.length !== 1 ? 's' : ''} para <strong>"${escHtml(q)}"</strong>`);
+}
+
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+}
+
+// ══════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════
+function fileIcon(mimeType) {
+  if (mimeType === 'application/vnd.google-apps.folder') return '📁';
+  if (mimeType.startsWith('image/')) return '🖼️';
+  if (mimeType.startsWith('video/')) return '🎬';
+  if (mimeType.startsWith('audio/')) return '🎵';
+  if (mimeType === 'application/pdf') return '📄';
+  if (mimeType === 'application/vnd.google-apps.document' || mimeType.includes('word')) return '📝';
+  if (mimeType === 'application/vnd.google-apps.spreadsheet' || mimeType.includes('sheet') || mimeType.includes('excel') || mimeType.includes('csv')) return '📊';
+  if (mimeType === 'application/vnd.google-apps.presentation' || mimeType.includes('presentation') || mimeType.includes('powerpoint')) return '📑';
+  if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('tar') || mimeType.includes('compress')) return '🗜️';
+  if (mimeType.includes('text/')) return '📃';
+  if (mimeType.includes('json') || mimeType.includes('xml') || mimeType.includes('html') || mimeType.includes('javascript') || mimeType.includes('python')) return '💻';
+  return '📎';
+}
+
+function mimeLabel(mimeType) {
+  const labels = {
+    'application/vnd.google-apps.folder': 'Carpeta',
+    'application/vnd.google-apps.document': 'Google Doc',
+    'application/vnd.google-apps.spreadsheet': 'Google Sheet',
+    'application/vnd.google-apps.presentation': 'Google Slides',
+    'application/vnd.google-apps.form': 'Google Form',
+    'application/vnd.google-apps.drawing': 'Google Drawing',
+    'application/pdf': 'PDF',
+    'text/plain': 'Texto',
+    'text/csv': 'CSV',
+  };
+  if (labels[mimeType]) return labels[mimeType];
+  if (mimeType.startsWith('image/')) return 'Imagen';
+  if (mimeType.startsWith('video/')) return 'Vídeo';
+  if (mimeType.startsWith('audio/')) return 'Audio';
+  const parts = mimeType.split('/');
+  return parts[parts.length - 1].toUpperCase().slice(0, 12);
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '—';
+  const n = parseInt(bytes);
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
+  return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function setStatus(type, html) {
+  const bar = document.getElementById('status-bar');
+  bar.className = 'status-bar ' + type;
+  bar.innerHTML = html;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+</script>
+</body>
+</html>
