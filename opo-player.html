@@ -393,17 +393,19 @@ async function scanFolder(folderId, folderPath) {
   });
   const subFolders = subRes.result.files || [];
 
-  // Obtener MP3s en esta carpeta
+  // Obtener todos los ficheros (no carpetas) y filtrar por extensión .mp3
   let pageToken = null;
   do {
     const params = {
-      q: `'${folderId}' in parents and mimeType='audio/mpeg' and trashed=false`,
-      fields: 'nextPageToken, files(id,name,size)',
+      q: `'${folderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false`,
+      fields: 'nextPageToken, files(id,name,size,mimeType)',
       pageSize: 200
     };
     if (pageToken) params.pageToken = pageToken;
-    const mp3Res = await gapi.client.drive.files.list(params);
-    const mp3s = mp3Res.result.files || [];
+    const filesRes = await gapi.client.drive.files.list(params);
+    const allFiles = filesRes.result.files || [];
+    // Filtramos por extensión .mp3 sin depender del mimeType asignado por Drive
+    const mp3s = allFiles.filter(f => /\.mp3$/i.test(f.name));
     for (const f of mp3s) {
       const cleanName = f.name.replace(/\.mp3$/i, '');
       allTracks.push({
@@ -415,7 +417,7 @@ async function scanFolder(folderId, folderPath) {
         size: f.size
       });
     }
-    pageToken = mp3Res.result.nextPageToken || null;
+    pageToken = filesRes.result.nextPageToken || null;
   } while (pageToken);
 
   // Actualizar mensaje de progreso
