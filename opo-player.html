@@ -213,6 +213,11 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
       </div>
 
       <div class="track-list hidden" id="track-list"></div>
+      <!-- Panel debug — visible hasta que el escaneo termine bien -->
+      <div id="debug-panel" style="padding:10px 14px;border-top:1px solid var(--border);flex-shrink:0;">
+        <div style="font-size:.7rem;color:var(--gold-dim);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">🔍 Debug log</div>
+        <pre id="debug-log" style="font-size:.68rem;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;max-height:220px;overflow-y:auto;line-height:1.5;"></pre>
+      </div>
     </div>
 
     <!-- MAIN -->
@@ -348,27 +353,58 @@ function doLogout() {
 }
 
 // ════════════════════════════════
+//  DEBUG LOG (panel visible en pantalla)
+// ════════════════════════════════
+const debugLines = [];
+function dbg(msg) {
+  debugLines.push(msg);
+  console.log('[OPO]', msg);
+  const el = document.getElementById('debug-log');
+  if (el) el.textContent = debugLines.slice(-40).join('\n');
+}
+
+// ════════════════════════════════
 //  ESCANEO RECURSIVO OPO_2025
 // ════════════════════════════════
 async function startScan() {
-  setScanMsg('Buscando carpeta OPO_2025…');
+  debugLines.length = 0;
+  dbg('=== INICIO ESCANEO ===');
   try {
-    // 1. Encontrar OPO_2025
+    // 1. Buscar carpeta OPO_2025 — corpora:'user' es necesario en Drive personal
+    dbg('Buscando carpeta "' + FOLDER_NAME + '"...');
     const res = await gapi.client.drive.files.list({
-      q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-      fields: 'files(id,name)', pageSize: 5
+      q: "name='" + FOLDER_NAME + "' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+      corpora: 'user',
+      fields: 'files(id,name)',
+      pageSize: 10
     });
     const folders = res.result.files || [];
+    dbg('Carpetas encontradas con ese nombre: ' + folders.length);
+    folders.forEach(f => dbg('  id=' + f.id + '  nombre="' + f.name + '"'));
+
     if (!folders.length) {
-      setScanMsg(`❌ No se encontró la carpeta "${FOLDER_NAME}"`);
+      // Listar carpetas en la raíz para ayudar a diagnosticar
+      dbg('No encontrada. Listando carpetas en raiz de Drive...');
+      const rootRes = await gapi.client.drive.files.list({
+        q: "'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+        corpora: 'user',
+        fields: 'files(id,name)',
+        pageSize: 50
+      });
+      const rootFolders = rootRes.result.files || [];
+      dbg('Carpetas en raiz (' + rootFolders.length + '):');
+      rootFolders.forEach(f => dbg('  "' + f.name + '"'));
+      setScanMsg('❌ No se encontró "' + FOLDER_NAME + '". Ver panel debug ↓');
       return;
     }
-    const rootFolder = folders[0];
-    setScanMsg(`Escaneando subcarpetas de ${FOLDER_NAME}…`);
 
-    // 2. BFS recursivo
+    const rootFolder = folders[0];
+    dbg('Carpeta raiz OK: ' + rootFolder.id);
+
+    // 2. Escaneo recursivo
     allTracks = [];
     await scanFolder(rootFolder.id, FOLDER_NAME);
+    dbg('=== ESCANEO COMPLETO: ' + allTracks.length + ' mp3s ===');
 
     allTracks.sort((a, b) => a.folderPath.localeCompare(b.folderPath) || a.name.localeCompare(b.name));
     filteredTracks = [...allTracks];
@@ -376,36 +412,47 @@ async function startScan() {
     document.getElementById('scan-overlay').classList.add('hidden');
     document.getElementById('track-list').classList.remove('hidden');
     document.getElementById('scan-info').innerHTML =
-      `<span class="count">${allTracks.length}</span> pistas encontradas`;
+      '<span class="count">' + allTracks.length + '</span> pistas encontradas';
 
     renderTrackList(filteredTracks);
   } catch(err) {
+    dbg('ERROR: ' + (err.message || JSON.stringify(err)));
     setScanMsg('❌ Error: ' + (err.message || err));
     console.error(err);
   }
 }
 
 async function scanFolder(folderId, folderPath) {
-  // Obtener subcarpetas
+  dbg('Entrando en: ' + folderPath);
+
+  // Subcarpetas
   const subRes = await gapi.client.drive.files.list({
-    q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-    fields: 'files(id,name)', pageSize: 100
+    q: "'" + folderId + "' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+    corpora: 'user',
+    fields: 'files(id,name)',
+    pageSize: 100
   });
   const subFolders = subRes.result.files || [];
+  dbg('  Subcarpetas: ' + subFolders.map(f => f.name).join(', '));
 
-  // Obtener todos los ficheros (no carpetas) y filtrar por extensión .mp3
+  // Ficheros (todos, sin filtro de mimeType — filtramos por extensión)
   let pageToken = null;
+  let countInFolder = 0;
   do {
     const params = {
-      q: `'${folderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false`,
+      q: "'" + folderId + "' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false",
+      corpora: 'user',
       fields: 'nextPageToken, files(id,name,size,mimeType)',
       pageSize: 200
     };
     if (pageToken) params.pageToken = pageToken;
     const filesRes = await gapi.client.drive.files.list(params);
     const allFiles = filesRes.result.files || [];
-    // Filtramos por extensión .mp3 sin depender del mimeType asignado por Drive
+    dbg('  Ficheros encontrados en esta carpeta: ' + allFiles.length);
+    allFiles.forEach(f => dbg('    "' + f.name + '" [' + f.mimeType + ']'));
+
     const mp3s = allFiles.filter(f => /\.mp3$/i.test(f.name));
+    dbg('  -> MP3s filtrados: ' + mp3s.length);
     for (const f of mp3s) {
       const cleanName = f.name.replace(/\.mp3$/i, '');
       allTracks.push({
@@ -416,14 +463,13 @@ async function scanFolder(folderId, folderPath) {
         folderPath,
         size: f.size
       });
+      countInFolder++;
     }
     pageToken = filesRes.result.nextPageToken || null;
   } while (pageToken);
 
-  // Actualizar mensaje de progreso
-  setScanMsg(`Escaneando: ${folderPath} (${allTracks.length} pistas)…`);
+  setScanMsg('Escaneando: ' + folderPath + ' (' + allTracks.length + ' pistas)...');
 
-  // Recursión en subcarpetas
   for (const sub of subFolders) {
     await scanFolder(sub.id, folderPath + ' / ' + sub.name);
   }
