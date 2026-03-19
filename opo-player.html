@@ -155,63 +155,103 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
 .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 18px;border-radius:8px;font-size:.84rem;z-index:9999;animation:fadeup .22s ease;box-shadow:0 6px 28px rgba(0,0,0,.5);pointer-events:none;}
 @keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(6px);}}
 
-/* ── RESPONSIVE MÓVIL ── */
-@media(max-width:768px){
-  /* En móvil: layout vertical — lista arriba, player abajo */
-  #app-screen { flex-direction: column; }
-  .main-area  { flex-direction: column; overflow: hidden; flex: 1; }
+/* Botones ±30s */
+.ctrl-btn.seek30{font-size:.7rem;font-weight:600;letter-spacing:-.02em;min-width:34px;color:var(--text-muted);border:1px solid var(--border);border-radius:6px;padding:3px 5px;line-height:1.2;}
+.ctrl-btn.seek30:hover{color:var(--gold);border-color:var(--gold-dim);}
 
-  /* Sidebar ocupa la mitad superior */
+/* ── RESPONSIVE MÓVIL PORTRAIT ── */
+@media(max-width:768px){
+  #app-screen { flex-direction: column; }
+  .main-area  { flex-direction: column; overflow: hidden; flex: 1; min-height: 0; }
+
   .sidebar {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border);
-    max-height: 42vh;
+    max-height: 40vh;
     flex-shrink: 0;
   }
   .sidebar-header { padding: 10px 14px; }
 
-  /* Content: tarjeta compacta centrada */
-  .content { padding: 14px; justify-content: flex-start; }
+  .content { padding: 12px; justify-content: flex-start; }
   .now-playing-card {
-    padding: 18px 16px;
+    padding: 14px 14px;
     flex-direction: row;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     text-align: left;
   }
-  .album-art { width: 72px; height: 72px; border-radius: 10px; flex-shrink: 0; margin: 0; font-size: 2rem; }
+  .album-art { width: 64px; height: 64px; border-radius: 10px; flex-shrink: 0; margin: 0; font-size: 2rem; }
   .np-label  { font-size: .65rem; margin-bottom: 4px; }
-  .np-title  { font-size: 1rem; }
+  .np-title  { font-size: .95rem; }
 
-  /* Player bar más compacta */
+  /* Player bar: columna de 3 filas explícitas */
   .player-bar {
     height: auto;
-    padding: 10px 14px;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px 14px 10px;
+    gap: 6px;
   }
-  .player-track { display: none; }  /* nombre ya visible en tarjeta */
-  .player-right { width: 100%; justify-content: space-between; }
+  .player-track { display: none; }
 
-  .ctrl-buttons { gap: 18px; }
-  .ctrl-btn.play-pause { width: 46px; height: 46px; font-size: 1.4rem; }
+  /* Fila 1: botones de control centrados */
+  .player-controls { flex: none; width: 100%; }
+  .ctrl-buttons { justify-content: center; gap: 10px; }
+  .ctrl-btn.play-pause { width: 44px; height: 44px; font-size: 1.3rem; }
 
-  .seek-row { max-width: 100%; }
+  /* Fila 2: barra de seek */
+  .seek-row { max-width: 100%; width: 100%; }
 
-  /* Ajustes track list para touch */
+  /* Fila 3: velocidad + volumen, siempre visibles */
+  .player-right {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: nowrap;
+  }
+  .loading-track { font-size: .74rem; }
+
   .track-item { padding: 11px 14px; }
   .track-name { font-size: .85rem; }
 
-  /* Búsqueda visible en móvil */
   .search-wrap { display: flex; max-width: none; flex: 1; }
   header { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
   .logo span { display: none; }
 }
 
+/* ── RESPONSIVE MÓVIL LANDSCAPE ── */
+@media(max-width:900px) and (orientation:landscape) and (max-height:500px){
+  .sidebar { max-height: 100%; max-width: 240px; width: 240px; border-right: 1px solid var(--border); border-bottom: none; }
+  .main-area { flex-direction: row; }
+
+  /* Player bar horizontal compacta */
+  .player-bar {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    padding: 0 12px;
+    gap: 10px;
+    height: 68px;
+    flex-shrink: 0;
+  }
+  .player-track { display: none; }
+  .player-controls { flex: 1; flex-direction: row; align-items: center; gap: 10px; min-width: 0; }
+  .ctrl-buttons { flex-shrink: 0; gap: 8px; }
+  .ctrl-btn.play-pause { width: 36px; height: 36px; font-size: 1.1rem; }
+  .ctrl-btn.seek30 { font-size: .62rem; min-width: 28px; padding: 2px 4px; }
+  .seek-row { flex: 1; max-width: none; min-width: 0; }
+  .player-right { flex-shrink: 0; gap: 10px; }
+  .vol-bar { width: 56px; }
+}
+
 @media(max-width:400px){
   .speed-select { font-size: .72rem; padding: 3px 5px; }
   .vol-bar { width: 55px; }
+  .ctrl-btn.seek30 { min-width: 28px; font-size: .64rem; }
 }
 </style>
 </head>
@@ -288,7 +328,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
     <div class="player-controls">
       <div class="ctrl-buttons">
         <button class="ctrl-btn" id="btn-prev" onclick="prevTrack()" title="Anterior">⏮</button>
+        <button class="ctrl-btn seek30" onclick="seek30(-30)" title="Retroceder 30s">−30s</button>
         <button class="ctrl-btn play-pause" id="btn-play" onclick="togglePlay()" disabled title="Play/Pausa">▶</button>
+        <button class="ctrl-btn seek30" onclick="seek30(+30)" title="Avanzar 30s">+30s</button>
         <button class="ctrl-btn" id="btn-next" onclick="nextTrack()" title="Siguiente">⏭</button>
       </div>
       <div class="seek-row">
@@ -615,6 +657,10 @@ function nextTrack() {
 
 function setSpeed(v) { audio.playbackRate = parseFloat(v); }
 function setVolume(v) { audio.volume = parseFloat(v); }
+function seek30(delta) {
+  if (!audio.src) return;
+  audio.currentTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + delta));
+}
 
 // ── SEEK ──
 const seekBar = document.getElementById('seek-bar');
