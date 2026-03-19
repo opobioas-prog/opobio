@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OPO Audio Player 2</title>
+<title>OPO Audio Player</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
@@ -370,38 +370,52 @@ async function startScan() {
   debugLines.length = 0;
   dbg('=== INICIO ESCANEO ===');
   try {
-    // 1. Buscar carpeta OPO_2025 — corpora:'user' es necesario en Drive personal
-    dbg('Buscando carpeta "' + FOLDER_NAME + '"...');
+    // 1. Buscar OPO_2025 — filtramos solo la que cuelga de 'root' para evitar
+    //    duplicados por accesos directos o carpetas compartidas con el mismo nombre
+    dbg('Buscando carpeta "' + FOLDER_NAME + '" en raiz...');
     const res = await gapi.client.drive.files.list({
-      q: "name='" + FOLDER_NAME + "' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+      q: "name='" + FOLDER_NAME + "' and 'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
       corpora: 'user',
       fields: 'files(id,name)',
       pageSize: 10
     });
-    const folders = res.result.files || [];
-    dbg('Carpetas encontradas con ese nombre: ' + folders.length);
+    let folders = res.result.files || [];
+    dbg('Carpetas en raiz con ese nombre: ' + folders.length);
     folders.forEach(f => dbg('  id=' + f.id + '  nombre="' + f.name + '"'));
 
+    // Si no esta en raiz, buscar en cualquier sitio (por si esta en subcarpeta)
     if (!folders.length) {
-      // Listar carpetas en la raíz para ayudar a diagnosticar
-      dbg('No encontrada. Listando carpetas en raiz de Drive...');
+      dbg('No esta en raiz, buscando en cualquier ubicacion...');
+      const res2 = await gapi.client.drive.files.list({
+        q: "name='" + FOLDER_NAME + "' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+        corpora: 'user',
+        includeItemsFromAllDrives: true,
+        supportsAllDrives: true,
+        fields: 'files(id,name,parents)',
+        pageSize: 10
+      });
+      folders = res2.result.files || [];
+      dbg('Resultados busqueda amplia: ' + folders.length);
+      folders.forEach(f => dbg('  id=' + f.id + '  nombre="' + f.name + '"'));
+    }
+
+    if (!folders.length) {
+      dbg('No encontrada. Listando carpetas en raiz...');
       const rootRes = await gapi.client.drive.files.list({
         q: "'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
         corpora: 'user',
         fields: 'files(id,name)',
         pageSize: 50
       });
-      const rootFolders = rootRes.result.files || [];
-      dbg('Carpetas en raiz (' + rootFolders.length + '):');
-      rootFolders.forEach(f => dbg('  "' + f.name + '"'));
-      setScanMsg('❌ No se encontró "' + FOLDER_NAME + '". Ver panel debug ↓');
+      (rootRes.result.files || []).forEach(f => dbg('  "' + f.name + '"'));
+      setScanMsg('❌ No se encontro "' + FOLDER_NAME + '". Ver panel debug');
       return;
     }
 
     const rootFolder = folders[0];
-    dbg('Carpeta raiz OK: ' + rootFolder.id);
+    dbg('Carpeta raiz seleccionada: id=' + rootFolder.id + ' nombre="' + rootFolder.name + '"');
 
-    // 2. Escaneo recursivo
+    // 2. Escaneo recursivo con soporte de carpetas compartidas
     allTracks = [];
     await scanFolder(rootFolder.id, FOLDER_NAME);
     dbg('=== ESCANEO COMPLETO: ' + allTracks.length + ' mp3s ===');
@@ -423,47 +437,48 @@ async function startScan() {
 }
 
 async function scanFolder(folderId, folderPath) {
-  dbg('Entrando en: ' + folderPath);
+  dbg('Entrando en: ' + folderPath + ' (id=' + folderId + ')');
 
-  // Subcarpetas
+  // Subcarpetas — includeItemsFromAllDrives para ver carpetas compartidas
   const subRes = await gapi.client.drive.files.list({
     q: "'" + folderId + "' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
     corpora: 'user',
+    includeItemsFromAllDrives: true,
+    supportsAllDrives: true,
     fields: 'files(id,name)',
-    pageSize: 100
+    pageSize: 200
   });
   const subFolders = subRes.result.files || [];
-  dbg('  Subcarpetas: ' + subFolders.map(f => f.name).join(', '));
+  dbg('  Subcarpetas (' + subFolders.length + '): ' + subFolders.map(f => f.name).join(', '));
 
-  // Ficheros (todos, sin filtro de mimeType — filtramos por extensión)
+  // Ficheros — filtramos por extension .mp3, independiente del mimeType
   let pageToken = null;
-  let countInFolder = 0;
   do {
     const params = {
       q: "'" + folderId + "' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false",
       corpora: 'user',
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true,
       fields: 'nextPageToken, files(id,name,size,mimeType)',
       pageSize: 200
     };
     if (pageToken) params.pageToken = pageToken;
     const filesRes = await gapi.client.drive.files.list(params);
     const allFiles = filesRes.result.files || [];
-    dbg('  Ficheros encontrados en esta carpeta: ' + allFiles.length);
+    dbg('  Ficheros en carpeta: ' + allFiles.length);
     allFiles.forEach(f => dbg('    "' + f.name + '" [' + f.mimeType + ']'));
 
     const mp3s = allFiles.filter(f => /\.mp3$/i.test(f.name));
-    dbg('  -> MP3s filtrados: ' + mp3s.length);
+    dbg('  -> MP3s: ' + mp3s.length);
     for (const f of mp3s) {
-      const cleanName = f.name.replace(/\.mp3$/i, '');
       allTracks.push({
         id: f.id,
-        name: cleanName,
+        name: f.name.replace(/\.mp3$/i, ''),
         rawName: f.name,
         folder: folderPath.split(' / ').pop(),
         folderPath,
         size: f.size
       });
-      countInFolder++;
     }
     pageToken = filesRes.result.nextPageToken || null;
   } while (pageToken);
