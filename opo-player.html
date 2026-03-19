@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPO Audio Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<style>
+:root {
+  --bg:#0d1117; --surface:#161b27; --surface2:#1e2536;
+  --border:#2a3347; --gold:#d4a843; --gold-dim:#a07830;
+  --text:#e8e2d5; --text-muted:#7a8399;
+  --success:#4eb87a; --error:#e05c5c; --info:#5b9bd5;
+  --player-h:88px; --sidebar-w:320px; --radius:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;gap:12px;z-index:10;}
+.logo{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold);white-space:nowrap;flex-shrink:0;}
+.logo span{color:var(--text-muted);font-size:.75rem;font-family:'DM Sans',sans-serif;font-weight:300;margin-left:7px;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.search-wrap{position:relative;flex:1;max-width:320px;}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;}
+#search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 12px 7px 34px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;transition:border-color .2s;}
+#search-input:focus{border-color:var(--gold-dim);}
+#search-input::placeholder{color:var(--text-muted);}
+.user-badge{display:none;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 11px;font-size:.8rem;color:var(--text-muted);}
+.user-badge.show{display:flex;}
+.user-badge img{width:22px;height:22px;border-radius:50%;}
+.user-badge .uname{color:var(--text);font-weight:500;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn-logout{background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 8px;border-radius:6px;font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.btn-logout:hover{color:var(--error);border-color:var(--error);}
+.btn-login{display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:#0d1117;border:none;padding:10px 22px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-login:hover{background:#e0b84e;transform:translateY(-1px);}
+
+/* ── LOGIN ── */
+#login-screen{flex:1;display:flex;align-items:center;justify-content:center;}
+#login-screen.hidden{display:none;}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:52px 44px;text-align:center;max-width:380px;width:90%;}
+.login-card .play-icon{font-size:3.4rem;margin-bottom:18px;display:block;}
+.login-card h1{font-family:'Playfair Display',serif;font-size:2rem;color:var(--gold);margin-bottom:10px;}
+.login-card p{color:var(--text-muted);font-size:.87rem;line-height:1.65;margin-bottom:32px;}
+.login-note{margin-top:16px;font-size:.75rem;color:var(--text-muted);}
+
+/* ── APP LAYOUT ── */
+#app-screen{display:none;flex:1;overflow:hidden;flex-direction:column;}
+#app-screen.show{display:flex;}
+.main-area{display:flex;flex:1;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-header{padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sidebar-header h2{font-size:.8rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);}
+.scan-info{font-size:.75rem;color:var(--text-muted);margin-top:4px;}
+.scan-info .count{color:var(--gold);font-weight:600;}
+.track-list{flex:1;overflow-y:auto;padding:8px 0;}
+
+/* Grupos */
+.group-header{padding:10px 18px 5px;font-size:.72rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--gold-dim);border-top:1px solid var(--border);margin-top:4px;}
+.group-header:first-child{border-top:none;margin-top:0;}
+
+.track-item{display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;transition:background .12s;border-left:3px solid transparent;}
+.track-item:hover{background:var(--surface2);}
+.track-item.active{background:rgba(212,168,67,.08);border-left-color:var(--gold);}
+.track-item.active .track-name{color:var(--gold);}
+.track-num{font-size:.72rem;color:var(--text-muted);width:20px;text-align:right;flex-shrink:0;}
+.track-icon{font-size:.95rem;flex-shrink:0;}
+.track-item.active .track-icon{animation:pulse 1.4s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.track-info{flex:1;min-width:0;}
+.track-name{font-size:.82rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.track-dur{font-size:.7rem;color:var(--text-muted);margin-top:1px;}
+
+/* ── MAIN CONTENT ── */
+.content{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;}
+
+/* Portada / visualizador */
+.now-playing-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px 36px;max-width:480px;width:100%;text-align:center;}
+.album-art{width:160px;height:160px;border-radius:16px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:4rem;margin:0 auto 24px;position:relative;overflow:hidden;}
+.album-art .waveform{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;gap:3px;padding:16px;opacity:0;}
+.album-art.playing .waveform{opacity:1;}
+.waveform .bar{width:4px;background:var(--gold);border-radius:2px;animation:wave 0.8s ease-in-out infinite;}
+.waveform .bar:nth-child(1){animation-delay:0s;height:30%;}
+.waveform .bar:nth-child(2){animation-delay:.1s;height:60%;}
+.waveform .bar:nth-child(3){animation-delay:.2s;height:90%;}
+.waveform .bar:nth-child(4){animation-delay:.15s;height:70%;}
+.waveform .bar:nth-child(5){animation-delay:.05s;height:45%;}
+.waveform .bar:nth-child(6){animation-delay:.25s;height:80%;}
+.waveform .bar:nth-child(7){animation-delay:.1s;height:55%;}
+@keyframes wave{0%,100%{transform:scaleY(.4);}50%{transform:scaleY(1);}}
+.album-art.playing .emoji-bg{opacity:.15;}
+.emoji-bg{font-size:4rem;transition:opacity .3s;}
+.np-label{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;}
+.np-title{font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--text);line-height:1.3;margin-bottom:4px;}
+.np-folder{font-size:.8rem;color:var(--text-muted);}
+.empty-player{text-align:center;color:var(--text-muted);}
+.empty-player .ep-icon{font-size:3rem;margin-bottom:14px;display:block;}
+.empty-player p{font-size:.88rem;line-height:1.6;}
+
+/* Loading overlay en sidebar */
+.scan-overlay{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:12px;padding:32px;}
+.scan-overlay.hidden{display:none;}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.scan-msg{font-size:.82rem;color:var(--text-muted);text-align:center;}
+
+/* ── PLAYER BAR ── */
+.player-bar{height:var(--player-h);background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;padding:0 24px;gap:20px;z-index:20;}
+.player-track{display:flex;flex-direction:column;min-width:140px;max-width:200px;flex-shrink:0;}
+.player-track-name{font-size:.82rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.player-track-folder{font-size:.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* Controles centrales */
+.player-controls{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.ctrl-buttons{display:flex;align-items:center;gap:14px;}
+.ctrl-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;transition:all .15s;padding:5px;line-height:1;border-radius:6px;}
+.ctrl-btn:hover{color:var(--text);}
+.ctrl-btn.play-pause{width:40px;height:40px;border-radius:50%;background:var(--gold);color:#0d1117;font-size:1.3rem;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+.ctrl-btn.play-pause:hover{background:#e0b84e;transform:scale(1.06);}
+.ctrl-btn.play-pause:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+/* Seek */
+.seek-row{display:flex;align-items:center;gap:10px;width:100%;max-width:500px;}
+.time-label{font-size:.71rem;color:var(--text-muted);white-space:nowrap;min-width:34px;}
+.time-label.right{text-align:right;}
+.seek-bar{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:var(--border);cursor:pointer;outline:none;}
+.seek-bar::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--gold);cursor:pointer;transition:transform .1s;}
+.seek-bar:hover::-webkit-slider-thumb{transform:scale(1.3);}
+.seek-bar::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--gold);cursor:pointer;border:none;}
+
+/* Controles derecha */
+.player-right{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.speed-select{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:4px 8px;font-family:'DM Sans',sans-serif;font-size:.79rem;cursor:pointer;outline:none;}
+.speed-select:focus{border-color:var(--gold-dim);}
+.vol-row{display:flex;align-items:center;gap:7px;}
+.vol-icon{font-size:.95rem;color:var(--text-muted);}
+.vol-bar{width:72px;-webkit-appearance:none;appearance:none;height:3px;border-radius:2px;background:var(--border);cursor:pointer;outline:none;}
+.vol-bar::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--gold);cursor:pointer;}
+.vol-bar::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;}
+
+/* Loading state en player */
+.loading-track{color:var(--info);font-size:.79rem;display:none;}
+.loading-track.show{display:block;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* Toast */
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 18px;border-radius:8px;font-size:.84rem;z-index:9999;animation:fadeup .22s ease;box-shadow:0 6px 28px rgba(0,0,0,.5);pointer-events:none;}
+@keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(6px);}}
+
+@media(max-width:700px){
+  .sidebar{width:220px;}
+  .player-track,.player-right{display:none;}
+  .now-playing-card{padding:24px 18px;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">OPO Player <span>Google Drive · OPO_2025</span></div>
+  <div class="search-wrap">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="search-input" placeholder="Buscar pista…" autocomplete="off">
+  </div>
+  <div class="header-right">
+    <div class="user-badge" id="user-badge">
+      <img id="user-avatar" src="" alt="" style="display:none">
+      <span class="uname" id="user-name"></span>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+    <button class="btn-login" id="btn-login-header" onclick="doLogin()" style="display:none">Conectar</button>
+  </div>
+</header>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <span class="play-icon">🎧</span>
+    <h1>OPO Player</h1>
+    <p>Reproduce tus audios de estudio almacenados en la carpeta <strong>OPO_2025</strong> de tu Google Drive con control total de velocidad y posición.</p>
+    <button class="btn-login" onclick="doLogin()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      Iniciar sesión con Google
+    </button>
+    <p class="login-note">Acceso solo a tu Drive · Los datos no salen de tu navegador</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <div class="main-area">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2>📂 OPO_2025</h2>
+        <div class="scan-info" id="scan-info">Escaneando…</div>
+      </div>
+
+      <!-- Loading scan -->
+      <div class="scan-overlay" id="scan-overlay">
+        <div class="spinner"></div>
+        <div class="scan-msg" id="scan-msg">Buscando carpeta OPO_2025…</div>
+      </div>
+
+      <div class="track-list hidden" id="track-list"></div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="content" id="main-content">
+      <div class="empty-player">
+        <span class="ep-icon">🎵</span>
+        <p>Selecciona una pista<br>para comenzar a reproducir</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYER BAR -->
+  <div class="player-bar">
+    <div class="player-track">
+      <div class="player-track-name" id="bar-name">—</div>
+      <div class="player-track-folder" id="bar-folder"></div>
+    </div>
+
+    <div class="player-controls">
+      <div class="ctrl-buttons">
+        <button class="ctrl-btn" id="btn-prev" onclick="prevTrack()" title="Anterior">⏮</button>
+        <button class="ctrl-btn play-pause" id="btn-play" onclick="togglePlay()" disabled title="Play/Pausa">▶</button>
+        <button class="ctrl-btn" id="btn-next" onclick="nextTrack()" title="Siguiente">⏭</button>
+      </div>
+      <div class="seek-row">
+        <span class="time-label" id="time-cur">0:00</span>
+        <input type="range" class="seek-bar" id="seek-bar" min="0" max="100" value="0" step="0.1">
+        <span class="time-label right" id="time-dur">0:00</span>
+      </div>
+    </div>
+
+    <div class="player-right">
+      <span class="loading-track" id="loading-track">⏳ Cargando…</span>
+      <div>
+        <label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:3px;">Velocidad</label>
+        <select class="speed-select" id="speed-select" onchange="setSpeed(this.value)">
+          <option value="0.5">0.5×</option>
+          <option value="0.75">0.75×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.25">1.25×</option>
+          <option value="1.5">1.5×</option>
+          <option value="1.75">1.75×</option>
+          <option value="2">2×</option>
+        </select>
+      </div>
+      <div class="vol-row">
+        <span class="vol-icon">🔊</span>
+        <input type="range" class="vol-bar" id="vol-bar" min="0" max="1" step="0.02" value="1" oninput="setVolume(this.value)">
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="audio-el"></audio>
+
+<script>
+// ════════════════════════════════
+//  CONFIG — mismas credenciales que Drive Explorer
+// ════════════════════════════════
+const CLIENT_ID = '718563989467-lt8fqbuvu3ouqf0b8at4g67n1llnv1iv.apps.googleusercontent.com';
+const API_KEY   = 'AIzaSyDEokH4aksi1MxR6LSqet7_rpRC_1gNlEQ';
+const SCOPES    = 'https://www.googleapis.com/auth/drive.readonly';
+const FOLDER_NAME = 'OPO_2025';
+
+// ════════════════════════════════
+//  STATE
+// ════════════════════════════════
+let accessToken = null;
+let gapiReady   = false;
+let allTracks   = [];       // [{id, name, folder, folderPath}]
+let filteredTracks = [];
+let currentIdx  = -1;
+let blobUrls    = {};       // cache fileId → blobUrl
+let seekDragging = false;
+
+const audio = document.getElementById('audio-el');
+
+// ════════════════════════════════
+//  GAPI INIT
+// ════════════════════════════════
+function waitGapi(cb) {
+  if (gapiReady) { cb(); return; }
+  const t = setInterval(() => { if (gapiReady) { clearInterval(t); cb(); } }, 200);
+}
+window.addEventListener('load', () => setTimeout(initGapi, 900));
+function initGapi() {
+  if (gapiReady) return;
+  if (typeof gapi === 'undefined') { setTimeout(initGapi, 600); return; }
+  gapi.load('client', () => {
+    gapi.client.init({ apiKey: API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] })
+      .then(() => { gapiReady = true; }).catch(e => console.warn('gapi:', e));
+  });
+}
+
+// ════════════════════════════════
+//  AUTH
+// ════════════════════════════════
+function doLogin() {
+  if (typeof google === 'undefined' || typeof gapi === 'undefined') {
+    showToast('Cargando APIs de Google…'); setTimeout(doLogin, 1200); return;
+  }
+  google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID, scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { showToast('Error: ' + resp.error); return; }
+      accessToken = resp.access_token;
+      gapi.client.setToken({ access_token: accessToken });
+      // Info usuario
+      try {
+        const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
+          { headers: { Authorization: 'Bearer ' + accessToken } }).then(r => r.json());
+        document.getElementById('user-name').textContent = info.name || info.email || 'Usuario';
+        const av = document.getElementById('user-avatar');
+        if (info.picture) { av.src = info.picture; av.style.display = 'block'; }
+      } catch(_){}
+      document.getElementById('user-badge').classList.add('show');
+      document.getElementById('btn-login-header').style.display = 'none';
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app-screen').classList.add('show');
+      waitGapi(startScan);
+    }
+  }).requestAccessToken({ prompt: 'consent' });
+}
+
+function doLogout() {
+  if (accessToken && typeof google !== 'undefined') google.accounts.oauth2.revoke(accessToken, ()=>{});
+  accessToken = null; allTracks = []; filteredTracks = []; currentIdx = -1;
+  blobUrls = {}; audio.src = '';
+  document.getElementById('user-badge').classList.remove('show');
+  document.getElementById('btn-login-header').style.display = '';
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app-screen').classList.remove('show');
+}
+
+// ════════════════════════════════
+//  ESCANEO RECURSIVO OPO_2025
+// ════════════════════════════════
+async function startScan() {
+  setScanMsg('Buscando carpeta OPO_2025…');
+  try {
+    // 1. Encontrar OPO_2025
+    const res = await gapi.client.drive.files.list({
+      q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+      fields: 'files(id,name)', pageSize: 5
+    });
+    const folders = res.result.files || [];
+    if (!folders.length) {
+      setScanMsg(`❌ No se encontró la carpeta "${FOLDER_NAME}"`);
+      return;
+    }
+    const rootFolder = folders[0];
+    setScanMsg(`Escaneando subcarpetas de ${FOLDER_NAME}…`);
+
+    // 2. BFS recursivo
+    allTracks = [];
+    await scanFolder(rootFolder.id, FOLDER_NAME);
+
+    allTracks.sort((a, b) => a.folderPath.localeCompare(b.folderPath) || a.name.localeCompare(b.name));
+    filteredTracks = [...allTracks];
+
+    document.getElementById('scan-overlay').classList.add('hidden');
+    document.getElementById('track-list').classList.remove('hidden');
+    document.getElementById('scan-info').innerHTML =
+      `<span class="count">${allTracks.length}</span> pistas encontradas`;
+
+    renderTrackList(filteredTracks);
+  } catch(err) {
+    setScanMsg('❌ Error: ' + (err.message || err));
+    console.error(err);
+  }
+}
+
+async function scanFolder(folderId, folderPath) {
+  // Obtener subcarpetas
+  const subRes = await gapi.client.drive.files.list({
+    q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+    fields: 'files(id,name)', pageSize: 100
+  });
+  const subFolders = subRes.result.files || [];
+
+  // Obtener MP3s en esta carpeta
+  let pageToken = null;
+  do {
+    const params = {
+      q: `'${folderId}' in parents and mimeType='audio/mpeg' and trashed=false`,
+      fields: 'nextPageToken, files(id,name,size)',
+      pageSize: 200
+    };
+    if (pageToken) params.pageToken = pageToken;
+    const mp3Res = await gapi.client.drive.files.list(params);
+    const mp3s = mp3Res.result.files || [];
+    for (const f of mp3s) {
+      const cleanName = f.name.replace(/\.mp3$/i, '');
+      allTracks.push({
+        id: f.id,
+        name: cleanName,
+        rawName: f.name,
+        folder: folderPath.split(' / ').pop(),
+        folderPath,
+        size: f.size
+      });
+    }
+    pageToken = mp3Res.result.nextPageToken || null;
+  } while (pageToken);
+
+  // Actualizar mensaje de progreso
+  setScanMsg(`Escaneando: ${folderPath} (${allTracks.length} pistas)…`);
+
+  // Recursión en subcarpetas
+  for (const sub of subFolders) {
+    await scanFolder(sub.id, folderPath + ' / ' + sub.name);
+  }
+}
+
+function setScanMsg(msg) {
+  document.getElementById('scan-msg').textContent = msg;
+}
+
+// ════════════════════════════════
+//  RENDER LISTA
+// ════════════════════════════════
+function renderTrackList(tracks) {
+  const list = document.getElementById('track-list');
+  list.innerHTML = '';
+
+  if (!tracks.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:.82rem;">Sin resultados</div>';
+    return;
+  }
+
+  // Agrupar por folderPath
+  const groups = {};
+  for (const t of tracks) {
+    if (!groups[t.folderPath]) groups[t.folderPath] = [];
+    groups[t.folderPath].push(t);
+  }
+
+  let globalIdx = 0;
+  for (const [path, groupTracks] of Object.entries(groups)) {
+    const gh = document.createElement('div');
+    gh.className = 'group-header';
+    gh.textContent = path;
+    list.appendChild(gh);
+
+    for (const t of groupTracks) {
+      const realIdx = filteredTracks.indexOf(t);
+      const item = document.createElement('div');
+      item.className = 'track-item' + (realIdx === currentIdx ? ' active' : '');
+      item.dataset.idx = realIdx;
+      item.innerHTML = `
+        <span class="track-num">${++globalIdx}</span>
+        <span class="track-icon">${realIdx === currentIdx ? '🔊' : '🎵'}</span>
+        <div class="track-info">
+          <div class="track-name" title="${escHtml(t.name)}">${escHtml(t.name)}</div>
+        </div>`;
+      item.onclick = () => loadTrack(realIdx, true);
+      list.appendChild(item);
+    }
+  }
+}
+
+// ════════════════════════════════
+//  BÚSQUEDA
+// ════════════════════════════════
+let searchTimer = null;
+document.getElementById('search-input').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    const q = e.target.value.trim().toLowerCase();
+    filteredTracks = q
+      ? allTracks.filter(t => t.name.toLowerCase().includes(q) || t.folderPath.toLowerCase().includes(q))
+      : [...allTracks];
+    currentIdx = -1;
+    renderTrackList(filteredTracks);
+  }, 220);
+});
+
+// ════════════════════════════════
+//  REPRODUCCIÓN
+// ════════════════════════════════
+async function loadTrack(idx, autoplay = true) {
+  if (idx < 0 || idx >= filteredTracks.length) return;
+  currentIdx = idx;
+  const track = filteredTracks[idx];
+
+  // UI
+  document.getElementById('bar-name').textContent = track.name;
+  document.getElementById('bar-folder').textContent = track.folderPath;
+  document.getElementById('btn-play').disabled = true;
+  document.getElementById('loading-track').classList.add('show');
+  renderTrackList(filteredTracks);
+  updateNowPlaying(track);
+  audio.pause();
+  audio.src = '';
+
+  try {
+    let blobUrl = blobUrls[track.id];
+    if (!blobUrl) {
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${track.id}?alt=media`,
+        { headers: { Authorization: 'Bearer ' + accessToken } }
+      );
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      blobUrl = URL.createObjectURL(blob);
+      blobUrls[track.id] = blobUrl;
+    }
+    audio.src = blobUrl;
+    audio.playbackRate = parseFloat(document.getElementById('speed-select').value);
+    audio.volume = parseFloat(document.getElementById('vol-bar').value);
+    if (autoplay) await audio.play();
+    document.getElementById('btn-play').textContent = '⏸';
+    document.getElementById('album-art')?.classList.add('playing');
+  } catch(err) {
+    showToast('❌ Error al cargar: ' + (err.message || err));
+  } finally {
+    document.getElementById('btn-play').disabled = false;
+    document.getElementById('loading-track').classList.remove('show');
+  }
+}
+
+function togglePlay() {
+  if (!audio.src) return;
+  if (audio.paused) {
+    audio.play();
+    document.getElementById('btn-play').textContent = '⏸';
+    document.getElementById('album-art')?.classList.add('playing');
+  } else {
+    audio.pause();
+    document.getElementById('btn-play').textContent = '▶';
+    document.getElementById('album-art')?.classList.remove('playing');
+  }
+}
+
+function prevTrack() {
+  if (currentIdx > 0) loadTrack(currentIdx - 1, !audio.paused);
+}
+function nextTrack() {
+  if (currentIdx < filteredTracks.length - 1) loadTrack(currentIdx + 1, !audio.paused);
+}
+
+function setSpeed(v) { audio.playbackRate = parseFloat(v); }
+function setVolume(v) { audio.volume = parseFloat(v); }
+
+// ── SEEK ──
+const seekBar = document.getElementById('seek-bar');
+seekBar.addEventListener('mousedown', () => { seekDragging = true; });
+seekBar.addEventListener('mouseup',   () => { seekDragging = false; audio.currentTime = (seekBar.value/100)*audio.duration; });
+seekBar.addEventListener('touchstart',() => { seekDragging = true; });
+seekBar.addEventListener('touchend',  () => { seekDragging = false; audio.currentTime = (seekBar.value/100)*audio.duration; });
+
+audio.addEventListener('timeupdate', () => {
+  if (seekDragging || !audio.duration) return;
+  seekBar.value = (audio.currentTime / audio.duration) * 100;
+  document.getElementById('time-cur').textContent = fmtTime(audio.currentTime);
+  document.getElementById('time-dur').textContent = fmtTime(audio.duration);
+});
+audio.addEventListener('ended', () => {
+  document.getElementById('btn-play').textContent = '▶';
+  document.getElementById('album-art')?.classList.remove('playing');
+  nextTrack();
+});
+audio.addEventListener('pause', () => { document.getElementById('btn-play').textContent = '▶'; });
+audio.addEventListener('play',  () => { document.getElementById('btn-play').textContent = '⏸'; });
+
+// Teclado
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  if (e.code === 'ArrowRight') { audio.currentTime = Math.min(audio.duration, audio.currentTime + 10); }
+  if (e.code === 'ArrowLeft')  { audio.currentTime = Math.max(0, audio.currentTime - 10); }
+  if (e.code === 'ArrowUp')    { e.preventDefault(); nextTrack(); }
+  if (e.code === 'ArrowDown')  { e.preventDefault(); prevTrack(); }
+});
+
+// ════════════════════════════════
+//  NOW PLAYING CARD
+// ════════════════════════════════
+function updateNowPlaying(track) {
+  document.getElementById('main-content').innerHTML = `
+    <div class="now-playing-card">
+      <div class="album-art" id="album-art">
+        <span class="emoji-bg">🎵</span>
+        <div class="waveform">
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div>
+        </div>
+      </div>
+      <div class="np-label">Reproduciendo ahora</div>
+      <div class="np-title">${escHtml(track.name)}</div>
+      <div class="np-folder">${escHtml(track.folderPath)}</div>
+    </div>`;
+}
+
+// ════════════════════════════════
+//  HELPERS
+// ════════════════════════════════
+function fmtTime(s) {
+  if (!s || isNaN(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ':' + String(sec).padStart(2, '0');
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showToast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 3500);
+}
+
+// Mostrar btn login si no logueado aún
+window.addEventListener('load', () => {
+  document.getElementById('btn-login-header').style.display = '';
+});
+</script>
+</body>
+</html>
