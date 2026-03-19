@@ -155,10 +155,63 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
 .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 18px;border-radius:8px;font-size:.84rem;z-index:9999;animation:fadeup .22s ease;box-shadow:0 6px 28px rgba(0,0,0,.5);pointer-events:none;}
 @keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(6px);}}
 
-@media(max-width:700px){
-  .sidebar{width:220px;}
-  .player-track,.player-right{display:none;}
-  .now-playing-card{padding:24px 18px;}
+/* ── RESPONSIVE MÓVIL ── */
+@media(max-width:768px){
+  /* En móvil: layout vertical — lista arriba, player abajo */
+  #app-screen { flex-direction: column; }
+  .main-area  { flex-direction: column; overflow: hidden; flex: 1; }
+
+  /* Sidebar ocupa la mitad superior */
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 42vh;
+    flex-shrink: 0;
+  }
+  .sidebar-header { padding: 10px 14px; }
+
+  /* Content: tarjeta compacta centrada */
+  .content { padding: 14px; justify-content: flex-start; }
+  .now-playing-card {
+    padding: 18px 16px;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+  }
+  .album-art { width: 72px; height: 72px; border-radius: 10px; flex-shrink: 0; margin: 0; font-size: 2rem; }
+  .np-label  { font-size: .65rem; margin-bottom: 4px; }
+  .np-title  { font-size: 1rem; }
+
+  /* Player bar más compacta */
+  .player-bar {
+    height: auto;
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .player-track { display: none; }  /* nombre ya visible en tarjeta */
+  .player-right { width: 100%; justify-content: space-between; }
+
+  .ctrl-buttons { gap: 18px; }
+  .ctrl-btn.play-pause { width: 46px; height: 46px; font-size: 1.4rem; }
+
+  .seek-row { max-width: 100%; }
+
+  /* Ajustes track list para touch */
+  .track-item { padding: 11px 14px; }
+  .track-name { font-size: .85rem; }
+
+  /* Búsqueda visible en móvil */
+  .search-wrap { display: flex; max-width: none; flex: 1; }
+  header { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
+  .logo span { display: none; }
+}
+
+@media(max-width:400px){
+  .speed-select { font-size: .72rem; padding: 3px 5px; }
+  .vol-bar { width: 55px; }
 }
 </style>
 </head>
@@ -213,11 +266,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
       </div>
 
       <div class="track-list hidden" id="track-list"></div>
-      <!-- Panel debug — visible hasta que el escaneo termine bien -->
-      <div id="debug-panel" style="padding:10px 14px;border-top:1px solid var(--border);flex-shrink:0;">
-        <div style="font-size:.7rem;color:var(--gold-dim);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">🔍 Debug log</div>
-        <pre id="debug-log" style="font-size:.68rem;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;max-height:220px;overflow-y:auto;line-height:1.5;"></pre>
-      </div>
+
     </div>
 
     <!-- MAIN -->
@@ -281,6 +330,7 @@ const CLIENT_ID = '718563989467-lt8fqbuvu3ouqf0b8at4g67n1llnv1iv.apps.googleuser
 const API_KEY   = 'AIzaSyDEokH4aksi1MxR6LSqet7_rpRC_1gNlEQ';
 const SCOPES    = 'https://www.googleapis.com/auth/drive.readonly';
 const FOLDER_NAME = 'OPO_2025';
+const AUDIOS_FOLDER = 'AUDIOS';
 
 // ════════════════════════════════
 //  STATE
@@ -353,72 +403,32 @@ function doLogout() {
 }
 
 // ════════════════════════════════
-//  DEBUG LOG (panel visible en pantalla)
-// ════════════════════════════════
-const debugLines = [];
-function dbg(msg) {
-  debugLines.push(msg);
-  console.log('[OPO]', msg);
-  const el = document.getElementById('debug-log');
-  if (el) el.textContent = debugLines.slice(-40).join('\n');
-}
-
-// ════════════════════════════════
 //  ESCANEO RECURSIVO OPO_2025
 // ════════════════════════════════
 async function startScan() {
-  debugLines.length = 0;
-  dbg('=== INICIO ESCANEO ===');
   try {
-    // 1. Buscar OPO_2025 — filtramos solo la que cuelga de 'root' para evitar
-    //    duplicados por accesos directos o carpetas compartidas con el mismo nombre
-    dbg('Buscando carpeta "' + FOLDER_NAME + '" en raiz...');
-    const res = await gapi.client.drive.files.list({
+    // 1. Encontrar OPO_2025 en raiz
+    setScanMsg('Buscando ' + FOLDER_NAME + '...');
+    const r1 = await gapi.client.drive.files.list({
       q: "name='" + FOLDER_NAME + "' and 'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
-      corpora: 'user',
-      fields: 'files(id,name)',
-      pageSize: 10
+      corpora: 'user', fields: 'files(id,name)', pageSize: 5
     });
-    let folders = res.result.files || [];
-    dbg('Carpetas en raiz con ese nombre: ' + folders.length);
-    folders.forEach(f => dbg('  id=' + f.id + '  nombre="' + f.name + '"'));
+    const opo = (r1.result.files || [])[0];
+    if (!opo) { setScanMsg('❌ No se encontro ' + FOLDER_NAME); return; }
 
-    // Si no esta en raiz, buscar en cualquier sitio (por si esta en subcarpeta)
-    if (!folders.length) {
-      dbg('No esta en raiz, buscando en cualquier ubicacion...');
-      const res2 = await gapi.client.drive.files.list({
-        q: "name='" + FOLDER_NAME + "' and mimeType='application/vnd.google-apps.folder' and trashed=false",
-        corpora: 'user',
-        includeItemsFromAllDrives: true,
-        supportsAllDrives: true,
-        fields: 'files(id,name,parents)',
-        pageSize: 10
-      });
-      folders = res2.result.files || [];
-      dbg('Resultados busqueda amplia: ' + folders.length);
-      folders.forEach(f => dbg('  id=' + f.id + '  nombre="' + f.name + '"'));
-    }
+    // 2. Encontrar AUDIOS dentro de OPO_2025
+    setScanMsg('Buscando ' + AUDIOS_FOLDER + '...');
+    const r2 = await gapi.client.drive.files.list({
+      q: "name='" + AUDIOS_FOLDER + "' and '" + opo.id + "' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+      corpora: 'user', includeItemsFromAllDrives: true, supportsAllDrives: true,
+      fields: 'files(id,name)', pageSize: 5
+    });
+    const audiosFolder = (r2.result.files || [])[0];
+    if (!audiosFolder) { setScanMsg('❌ No se encontro ' + FOLDER_NAME + '/' + AUDIOS_FOLDER); return; }
 
-    if (!folders.length) {
-      dbg('No encontrada. Listando carpetas en raiz...');
-      const rootRes = await gapi.client.drive.files.list({
-        q: "'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
-        corpora: 'user',
-        fields: 'files(id,name)',
-        pageSize: 50
-      });
-      (rootRes.result.files || []).forEach(f => dbg('  "' + f.name + '"'));
-      setScanMsg('❌ No se encontro "' + FOLDER_NAME + '". Ver panel debug');
-      return;
-    }
-
-    const rootFolder = folders[0];
-    dbg('Carpeta raiz seleccionada: id=' + rootFolder.id + ' nombre="' + rootFolder.name + '"');
-
-    // 2. Escaneo recursivo con soporte de carpetas compartidas
+    // 3. Escaneo recursivo desde AUDIOS
     allTracks = [];
-    await scanFolder(rootFolder.id, FOLDER_NAME);
-    dbg('=== ESCANEO COMPLETO: ' + allTracks.length + ' mp3s ===');
+    await scanFolder(audiosFolder.id, AUDIOS_FOLDER);
 
     allTracks.sort((a, b) => a.folderPath.localeCompare(b.folderPath) || a.name.localeCompare(b.name));
     filteredTracks = [...allTracks];
@@ -426,51 +436,36 @@ async function startScan() {
     document.getElementById('scan-overlay').classList.add('hidden');
     document.getElementById('track-list').classList.remove('hidden');
     document.getElementById('scan-info').innerHTML =
-      '<span class="count">' + allTracks.length + '</span> pistas encontradas';
+      '<span class="count">' + allTracks.length + '</span> pistas';
 
     renderTrackList(filteredTracks);
   } catch(err) {
-    dbg('ERROR: ' + (err.message || JSON.stringify(err)));
     setScanMsg('❌ Error: ' + (err.message || err));
     console.error(err);
   }
 }
 
 async function scanFolder(folderId, folderPath) {
-  dbg('Entrando en: ' + folderPath + ' (id=' + folderId + ')');
-
-  // Subcarpetas — includeItemsFromAllDrives para ver carpetas compartidas
+  // Subcarpetas
   const subRes = await gapi.client.drive.files.list({
     q: "'" + folderId + "' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
-    corpora: 'user',
-    includeItemsFromAllDrives: true,
-    supportsAllDrives: true,
-    fields: 'files(id,name)',
-    pageSize: 200
+    corpora: 'user', includeItemsFromAllDrives: true, supportsAllDrives: true,
+    fields: 'files(id,name)', pageSize: 200
   });
   const subFolders = subRes.result.files || [];
-  dbg('  Subcarpetas (' + subFolders.length + '): ' + subFolders.map(f => f.name).join(', '));
 
-  // Ficheros — filtramos por extension .mp3, independiente del mimeType
+  // Ficheros MP3
   let pageToken = null;
   do {
     const params = {
       q: "'" + folderId + "' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false",
-      corpora: 'user',
-      includeItemsFromAllDrives: true,
-      supportsAllDrives: true,
-      fields: 'nextPageToken, files(id,name,size,mimeType)',
+      corpora: 'user', includeItemsFromAllDrives: true, supportsAllDrives: true,
+      fields: 'nextPageToken, files(id,name,size)',
       pageSize: 200
     };
     if (pageToken) params.pageToken = pageToken;
-    const filesRes = await gapi.client.drive.files.list(params);
-    const allFiles = filesRes.result.files || [];
-    dbg('  Ficheros en carpeta: ' + allFiles.length);
-    allFiles.forEach(f => dbg('    "' + f.name + '" [' + f.mimeType + ']'));
-
-    const mp3s = allFiles.filter(f => /\.mp3$/i.test(f.name));
-    dbg('  -> MP3s: ' + mp3s.length);
-    for (const f of mp3s) {
+    const res = await gapi.client.drive.files.list(params);
+    for (const f of (res.result.files || []).filter(f => /\.mp3$/i.test(f.name))) {
       allTracks.push({
         id: f.id,
         name: f.name.replace(/\.mp3$/i, ''),
@@ -480,14 +475,15 @@ async function scanFolder(folderId, folderPath) {
         size: f.size
       });
     }
-    pageToken = filesRes.result.nextPageToken || null;
+    pageToken = res.result.nextPageToken || null;
   } while (pageToken);
 
-  setScanMsg('Escaneando: ' + folderPath + ' (' + allTracks.length + ' pistas)...');
+  setScanMsg('Escaneando... ' + allTracks.length + ' pistas');
 
-  for (const sub of subFolders) {
-    await scanFolder(sub.id, folderPath + ' / ' + sub.name);
-  }
+  // Subcarpetas en paralelo para reducir tiempo de escaneo
+  await Promise.all(subFolders.map(sub =>
+    scanFolder(sub.id, folderPath + ' / ' + sub.name)
+  ));
 }
 
 function setScanMsg(msg) {
@@ -629,9 +625,12 @@ seekBar.addEventListener('touchend',  () => { seekDragging = false; audio.curren
 
 audio.addEventListener('timeupdate', () => {
   if (seekDragging || !audio.duration) return;
+  const speed     = audio.playbackRate || 1;
+  const elapsed   = audio.currentTime / speed;
+  const remaining = (audio.duration - audio.currentTime) / speed;
   seekBar.value = (audio.currentTime / audio.duration) * 100;
-  document.getElementById('time-cur').textContent = fmtTime(audio.currentTime);
-  document.getElementById('time-dur').textContent = fmtTime(audio.duration);
+  document.getElementById('time-cur').textContent = fmtTime(elapsed);
+  document.getElementById('time-dur').textContent = '-' + fmtTime(remaining);
 });
 audio.addEventListener('ended', () => {
   document.getElementById('btn-play').textContent = '▶';
