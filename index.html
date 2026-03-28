@@ -1486,14 +1486,30 @@
     .audio-layout { flex-direction: column; }
     .audio-sidebar {
       width: 100%; border-right: none; border-bottom: 1px solid var(--border);
-      height: 34vh; max-height: 34vh; flex-shrink: 0; overflow: hidden;
+      /* La lista de pistas ocupa la mayor parte: flex creciente */
+      flex: 1 1 0;
+      min-height: 0;
+      overflow: hidden;
     }
-    .audio-content { padding: 10px 12px; justify-content: flex-start; }
+    /* El área central (portada + now playing) queda compacta */
+    .audio-content {
+      padding: 8px 12px;
+      justify-content: flex-start;
+      flex: 0 0 auto;
+    }
     .audio-now-playing-card {
-      padding: 12px 14px;
-      display: flex; flex-direction: row; align-items: center; gap: 14px; text-align: left;
+      padding: 10px 12px;
+      display: flex; flex-direction: row; align-items: center; gap: 12px; text-align: left;
     }
-    .audio-album-art { width: 58px; height: 58px; border-radius: 10px; flex-shrink: 0; margin: 0; font-size: 2rem; }
+    .audio-album-art {
+      width: 48px; height: 48px; border-radius: 8px;
+      flex-shrink: 0; margin: 0; font-size: 1.6rem;
+    }
+    /* Ocultar el emoji de fondo y la onda en la versión compacta de móvil
+       para no malgastar espacio visual */
+    .audio-emoji-bg { font-size: 1.6rem; }
+    .audio-np-label { display: none; }
+    .audio-np-subtitle { display: none; }
     .audio-player-bar {
       display: flex !important;
       flex-direction: column;
@@ -1518,10 +1534,25 @@
   }
 
   @media (max-width: 480px) {
-    .audio-sidebar { height: 28vh; max-height: 28vh; }
+    /* En pantallas muy pequeñas reforzamos que la lista sea la protagonista */
+    .audio-sidebar {
+      flex: 1 1 0;
+      min-height: 0;
+    }
+    .audio-content { padding: 6px 10px; }
+    .audio-now-playing-card { padding: 8px 10px; gap: 10px; }
+    .audio-album-art { width: 40px; height: 40px; font-size: 1.3rem; }
     .audio-player-bar { padding: 6px 10px 8px; }
     .audio-player-right { gap: 10px; }
     .audio-vol-bar { width: 55px; }
+    /* Chips de tema: fila horizontal con scroll para no ocupar tanto en vertical */
+    .audio-topic-filter {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      max-height: none;
+      padding: 6px 10px;
+    }
   }
 
 </style>
