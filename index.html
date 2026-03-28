@@ -984,23 +984,28 @@
   /* ── MOBILE ── */
   @media (max-width: 600px) {
 
-    /* Header */
+    /* Header: logo oculto, nav icon-only ocupa todo el ancho */
     header {
-      padding: 10px 14px;
-      gap: 8px;
+      padding: 8px 10px;
+      gap: 0;
     }
     .logo {
-      font-size: 1rem;
-    }
-    .logo span {
       display: none;
     }
     nav {
-      gap: 4px;
+      width: 100%;
+      gap: 0;
+      justify-content: space-around;
     }
     .nav-btn {
-      padding: 6px 9px;
-      font-size: 0.78rem;
+      padding: 8px 4px;
+      font-size: 1.25rem;
+      flex: 1;
+      text-align: center;
+      border-radius: 6px;
+    }
+    .nav-label {
+      display: none;
     }
 
     /* Main */
@@ -1490,18 +1495,33 @@
     }
     .audio-album-art { width: 58px; height: 58px; border-radius: 10px; flex-shrink: 0; margin: 0; font-size: 2rem; }
     .audio-player-bar {
-      display: grid !important;
-      grid-template-rows: auto auto;
-      grid-template-columns: 1fr;
+      display: flex !important;
+      flex-direction: column;
       height: auto;
-      padding: 8px 14px 12px; gap: 6px;
+      padding: 8px 14px 10px;
+      gap: 6px;
+      align-items: stretch;
     }
     .audio-bar-track { display: none; }
-    .audio-controls { grid-row: 1; align-items: stretch; flex-direction: column; width: 100%; }
+    .audio-controls { align-items: stretch; flex-direction: column; width: 100%; }
     .audio-seek-row { max-width: 100%; }
-    .audio-player-right { grid-row: 2; display: flex !important; justify-content: center; gap: 18px; }
+    .audio-player-right {
+      display: flex !important;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      width: 100%;
+    }
     .audio-ctrl-buttons { justify-content: center; gap: 10px; }
     .audio-ctrl-btn.play-pause { width: 44px; height: 44px; }
+  }
+
+  @media (max-width: 480px) {
+    .audio-sidebar { height: 28vh; max-height: 28vh; }
+    .audio-player-bar { padding: 6px 10px 8px; }
+    .audio-player-right { gap: 10px; }
+    .audio-vol-bar { width: 55px; }
   }
 
 </style>
@@ -1510,11 +1530,11 @@
 <header>
   <div class="logo">⚖ Opositor <span>Entrenador de test</span></div>
   <nav>
-    <button class="nav-btn active" onclick="showScreen('upload')">📂 Temas</button>
-    <button class="nav-btn" onclick="showScreen('topics')">📋 Selección</button>
-    <button class="nav-btn" onclick="showScreen('temario')">📚 Temario</button>
-    <button class="nav-btn" onclick="showScreen('stats')">📊 Estadísticas</button>
-    <button class="nav-btn" onclick="showScreen('audio')">🎧 Audio</button>
+    <button class="nav-btn active" onclick="showScreen('upload')"><span class="nav-icon">📂</span><span class="nav-label"> Temas</span></button>
+    <button class="nav-btn" onclick="showScreen('topics')"><span class="nav-icon">📋</span><span class="nav-label"> Selección</span></button>
+    <button class="nav-btn" onclick="showScreen('temario')"><span class="nav-icon">📚</span><span class="nav-label"> Temario</span></button>
+    <button class="nav-btn" onclick="showScreen('stats')"><span class="nav-icon">📊</span><span class="nav-label"> Estadísticas</span></button>
+    <button class="nav-btn" onclick="showScreen('audio')"><span class="nav-icon">🎧</span><span class="nav-label"> Audio</span></button>
   </nav>
 </header>
 
@@ -2713,6 +2733,7 @@ function driveLogin() {
       }
       driveAccessToken = tokenResponse.access_token;
       gapi.client.setToken({ access_token: driveAccessToken });
+      sessionStorage.setItem('opos_was_authed', '1');
 
       // Show user info
       try {
@@ -2737,7 +2758,7 @@ function driveLogin() {
       await autoLoadDriveFiles();
     }
   });
-  client.requestAccessToken({ prompt: 'consent' });
+  client.requestAccessToken({ prompt: '' });
 }
 
 function driveLogout() {
@@ -2906,7 +2927,57 @@ function setDriveStatus(id, type, html) {
   if (!type) el.style.display = 'none';
 }
 
-window.addEventListener('load', () => setTimeout(initGapiIfNeeded, 800));
+window.addEventListener('load', () => {
+  setTimeout(initGapiIfNeeded, 800);
+
+  // Reautenticacion silenciosa tras refresh
+  // Si el usuario ya habia hecho login en esta sesion del navegador,
+  // intentamos recuperar el token sin mostrar el selector de cuenta.
+  if (sessionStorage.getItem('opos_was_authed') === '1') {
+    const tryReauth = () => {
+      if (typeof google === 'undefined' || typeof gapi === 'undefined') {
+        setTimeout(tryReauth, 600); return;
+      }
+      try {
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: DRIVE_CLIENT_ID,
+          scope: DRIVE_SCOPES,
+          callback: async (tokenResponse) => {
+            if (tokenResponse.error || !tokenResponse.access_token) return;
+            driveAccessToken = tokenResponse.access_token;
+            audioAccessToken = tokenResponse.access_token;
+            gapi.client.setToken({ access_token: driveAccessToken });
+
+            // Recuperar info de usuario para mostrar la badge
+            try {
+              const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: 'Bearer ' + driveAccessToken }
+              }).then(r => r.json());
+              document.getElementById('drive-username').textContent = info.name || info.email || 'Usuario';
+              const avatar = document.getElementById('drive-avatar');
+              if (info.picture) { avatar.src = info.picture; avatar.style.display = 'block'; }
+              else avatar.style.display = 'none';
+            } catch(_) {}
+
+            document.getElementById('drive-user-badge').classList.add('show');
+            document.getElementById('btn-drive-login').style.display = 'none';
+            setDriveStatus('drive-auth-status', 'connected', '\u2713 Sesi\u00f3n recuperada autom\u00e1ticamente');
+            document.getElementById('drive-autoload-step').style.display = 'flex';
+            document.getElementById('audio-connect-prompt').style.display = 'none';
+
+            // Cargar archivos de Drive automaticamente
+            autoLoadDriveFiles();
+          }
+        });
+        // prompt: '' -> sin dialogo si Google ya tiene sesion activa
+        client.requestAccessToken({ prompt: '' });
+      } catch(e) {
+        console.warn('Reauth silenciosa fallida:', e);
+      }
+    };
+    setTimeout(tryReauth, 1200);
+  }
+});
 
 // ═══════════════════════════════════════════
 //  NAVIGATION
@@ -2923,10 +2994,15 @@ function showScreen(id) {
     audioScreen.style.display = 'flex';
     // Activate nav btn (index 4)
     document.querySelectorAll('.nav-btn')[4]?.classList.add('active');
-    // If already authed via quiz side, hook up audio
+    // If already authed via quiz side, auto-start audio (no need to log in again)
     if (driveAccessToken && !audioAccessToken) {
       audioAccessToken = driveAccessToken;
-      audioStartScan();
+    }
+    if (audioAccessToken) {
+      document.getElementById('audio-connect-prompt').style.display = 'none';
+      if (audioAllTracks.length === 0) {
+        audioWaitGapi(audioStartScan);
+      }
     }
     return;
   }
@@ -2982,9 +3058,11 @@ function audioDoLogin() {
     callback: async (resp) => {
       if (resp.error) { showToast('Error: ' + resp.error); return; }
       audioAccessToken = resp.access_token;
+      driveAccessToken = resp.access_token; // compartir con el lado del quiz
       // Ensure gapi has token
       if (typeof gapi !== 'undefined') gapi.client.setToken({ access_token: audioAccessToken });
       document.getElementById('audio-connect-prompt').style.display = 'none';
+      sessionStorage.setItem('opos_was_authed', '1');
       audioWaitGapi(audioStartScan);
     }
   });
@@ -3356,14 +3434,11 @@ function audioUpdateNowPlaying(track) {
 const _origDriveCallback = window._audioHooked;
 function audioOnDriveAuth(token) {
   audioAccessToken = token;
+  document.getElementById('audio-connect-prompt').style.display = 'none';
   if (document.getElementById('audio-screen').style.display === 'flex') {
-    document.getElementById('audio-connect-prompt').style.display = 'none';
-    audioWaitGapi(audioStartScan);
-  } else {
-    // Pre-load in background when audio tab is opened
-    document.getElementById('audio-connect-prompt').innerHTML =
-      `<span class="ep-icon">✅</span><p>Sesión iniciada. Pulsa para escanear los audios.</p>
-       <button class="btn-primary" onclick="audioWaitGapi(audioStartScan)">Escanear ahora</button>`;
+    if (audioAllTracks.length === 0) {
+      audioWaitGapi(audioStartScan);
+    }
   }
 }
 
