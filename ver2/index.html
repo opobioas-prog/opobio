@@ -2829,6 +2829,7 @@ function launchFromModal() {
 // ═══════════════════════════════════════════
 
 const SUPABASE_CONFIG_KEY = 'opos_supabase_config';
+let sbAuthReady = null;
 
 function initSupabaseFromStorage() {
   const cfg = getSupabaseConfig();
@@ -2840,10 +2841,11 @@ function initSupabaseFromStorage() {
   sbClient = window.supabase.createClient(cfg.url, cfg.key, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
-  sbClient.auth.getUser().then(({ data }) => {
-    sbUser = data?.user || null;
-    updateSupabaseAuthStatus();
+  sbClient.auth.onAuthStateChange((_event, session) => {
+    sbUser = session?.user || null;
+    updateSupabaseAuthStatus(false);
   });
+  sbAuthReady = refreshSupabaseSession();
   return sbClient;
 }
 
@@ -2875,7 +2877,7 @@ async function supabaseLogin() {
   }
   const { error } = await client.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.href.split('#')[0] }
+    options: { redirectTo: getSupabaseRedirectUrl() }
   });
   if (error) setDriveStatus('supabase-auth-status', 'error', error.message);
 }
@@ -2889,12 +2891,31 @@ async function supabaseLogout() {
   updateSupabaseAuthStatus();
 }
 
-async function updateSupabaseAuthStatus() {
+function getSupabaseRedirectUrl() {
+  return window.location.origin + window.location.pathname;
+}
+
+async function refreshSupabaseSession() {
   const client = ensureSupabaseClient();
-  if (!client) return;
-  const { data } = await client.auth.getUser();
-  sbUser = data?.user || null;
-  if (sbUser) setDriveStatus('supabase-auth-status', 'connected', 'Sesion Supabase activa: ' + (sbUser.email || sbUser.id));
+  if (!client) return null;
+  setDriveStatus('supabase-auth-status', 'loading', '<span class="spinner"></span> Comprobando sesion Supabase...');
+  const { data, error } = await client.auth.getSession();
+  if (error) {
+    setDriveStatus('supabase-auth-status', 'error', error.message);
+    return null;
+  }
+  sbUser = data?.session?.user || null;
+  updateSupabaseAuthStatus(false);
+  if (sbUser && (window.location.search || window.location.hash)) {
+    window.history.replaceState({}, document.title, getSupabaseRedirectUrl());
+  }
+  return data?.session || null;
+}
+
+async function updateSupabaseAuthStatus(refresh = true) {
+  if (refresh) await refreshSupabaseSession();
+  else if (sbUser) setDriveStatus('supabase-auth-status', 'connected', 'Sesion Supabase activa: ' + (sbUser.email || sbUser.id));
+  else setDriveStatus('supabase-auth-status', '', '');
 }
 
 async function requireSupabaseUser(statusId = 'supabase-data-status') {
@@ -2903,12 +2924,12 @@ async function requireSupabaseUser(statusId = 'supabase-data-status') {
     setDriveStatus(statusId, 'error', 'Configura Supabase antes de usar esta funcion.');
     return null;
   }
-  const { data, error } = await client.auth.getUser();
-  if (error || !data?.user) {
+  if (sbAuthReady) await sbAuthReady;
+  if (!sbUser) await refreshSupabaseSession();
+  if (!sbUser) {
     setDriveStatus(statusId, 'error', 'Inicia sesion con Google en Supabase primero.');
     return null;
   }
-  sbUser = data.user;
   return client;
 }
 
