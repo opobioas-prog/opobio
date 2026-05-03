@@ -1,0 +1,24 @@
+{
+  "name": "OPO Player",
+  "short_name": "OPO Player",
+  "description": "Reproductor de audios OPO_2025",
+  "start_url": "./opo-player.html",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#d4a843",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-opo-player-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-opo-player-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
