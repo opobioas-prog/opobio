@@ -64,14 +64,18 @@
 
     async function cargarTemas() {
       try {
-        const { data, error } = await db.from('temas')
-          .select('*, preguntas_count:preguntas(count)')
-          .order('grupo').order('codigo')
+        const [{ data, error }, { data: counts }] = await Promise.all([
+          db.from('temas').select('*').order('grupo').order('codigo'),
+          db.from('preguntas').select('tema_id').eq('activa', true),
+        ])
         if (error) throw error
+
+        const countMap = {}
+        ;(counts || []).forEach(p => { countMap[p.tema_id] = (countMap[p.tema_id] || 0) + 1 })
 
         todosLosTemas = (data || []).map(t => ({
           ...t,
-          preguntas_count: t.preguntas_count?.[0]?.count ?? 0,
+          preguntas_count: countMap[t.id] || 0,
         }))
 
         renderGrupos()
