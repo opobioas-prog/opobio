@@ -22,15 +22,15 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js?v=20260506-9"></script>
-  <script src="./js/layout.js?v=20260506-9"></script>
+  <script src="./js/utils.js?v=20260506-10"></script>
+  <script src="./js/layout.js?v=20260506-10"></script>
   <script>
     let respuestasGlobal = []
 
     ;(async () => {
       try {
         await requireAuth()
-        initLayout('dashboard', 'Resultados', './dashboard.html?v=20260506-9')
+        initLayout('dashboard', 'Resultados', './dashboard.html?v=20260506-10')
 
         const id = getParam('id')
         if (!id) throw new Error('Falta el identificador del intento.')
@@ -97,11 +97,11 @@
       const grid = document.createElement('div')
       grid.className = 'grid grid-cols-2 gap-3'
       grid.innerHTML = `
-        <a href="./test.html?v=20260506-9"
+        <a href="./test.html?v=20260506-10"
           class="flex items-center justify-center gap-2 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors text-sm">
           Nuevo test
         </a>
-        <a href="./dashboard.html?v=20260506-9"
+        <a href="./dashboard.html?v=20260506-10"
           class="flex items-center justify-center gap-2 min-h-[44px] bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-xl transition-colors text-sm">
           Inicio
         </a>`

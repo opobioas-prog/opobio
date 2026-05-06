@@ -1,6 +1,6 @@
 ﻿// â”€â”€ Utilidades de UI compartidas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-window.OPOTEST_UTILS_VERSION = '20260506-9'
+window.OPOTEST_UTILS_VERSION = '20260506-10'
 
 // Mostrar/ocultar spinner de carga
 function showSpinner(id = 'spinner') {

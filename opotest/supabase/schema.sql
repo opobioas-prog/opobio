@@ -59,11 +59,43 @@ create table if not exists public.respuestas_usuario (
 
 create index if not exists idx_temas_grupo         on public.temas (grupo);
 create index if not exists idx_preguntas_tema_id   on public.preguntas (tema_id);
+create index if not exists idx_preguntas_codigo_tema on public.preguntas (codigo_tema);
 create index if not exists idx_preguntas_activa    on public.preguntas (activa);
 create index if not exists idx_preguntas_eliminada on public.preguntas (eliminada);
 create index if not exists idx_intentos_fecha      on public.intentos_test (fecha desc);
 create index if not exists idx_respuestas_intento  on public.respuestas_usuario (intento_test_id);
 create index if not exists idx_respuestas_pregunta on public.respuestas_usuario (pregunta_id);
+
+-- Enlaza preguntas importadas por código si el tema se creó después.
+update public.preguntas p
+set tema_id = t.id
+from public.temas t
+where p.tema_id is null
+  and p.codigo_tema = t.codigo;
+
+-- ── Recuentos rápidos por tema ─────────────────────────
+-- Evita que la app descargue todas las preguntas solo para contarlas.
+
+create or replace function public.conteo_preguntas_por_tema(
+  p_activa boolean default null,
+  p_eliminada boolean default null
+)
+returns table (
+  tema_id uuid,
+  total bigint
+)
+language sql
+stable
+as $$
+  select p.tema_id, count(*)::bigint as total
+  from public.preguntas p
+  where p.tema_id is not null
+    and (p_activa is null or p.activa = p_activa)
+    and (p_eliminada is null or p.eliminada = p_eliminada)
+  group by p.tema_id
+$$;
+
+grant execute on function public.conteo_preguntas_por_tema(boolean, boolean) to authenticated;
 
 -- ── Vista de estadísticas ─────────────────────────────
 
@@ -106,6 +138,10 @@ drop policy if exists "Acceso público temas"      on public.temas;
 drop policy if exists "Acceso público preguntas"  on public.preguntas;
 drop policy if exists "Acceso público intentos"   on public.intentos_test;
 drop policy if exists "Acceso público respuestas" on public.respuestas_usuario;
+drop policy if exists "Solo auth — temas"         on public.temas;
+drop policy if exists "Solo auth — preguntas"     on public.preguntas;
+drop policy if exists "Solo auth — intentos"      on public.intentos_test;
+drop policy if exists "Solo auth — respuestas"    on public.respuestas_usuario;
 
 -- Nuevas políticas: solo usuarios con sesión activa
 create policy "Solo auth — temas"

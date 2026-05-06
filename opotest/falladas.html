@@ -12,7 +12,7 @@
   <header id="appHeader"></header>
 
   <main class="max-w-2xl mx-auto px-4 pt-4 pb-32 space-y-4">
-    <p class="text-[10px] text-gray-300 px-1">Falladas v20260506-9</p>
+    <p class="text-[10px] text-gray-300 px-1">Falladas v20260506-10</p>
     <div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 rounded-xl p-4">
       <p class="text-sm text-orange-700 dark:text-orange-300">Preguntas ordenadas de menor a mayor tasa de acierto.</p>
     </div>
@@ -50,8 +50,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js?v=20260506-9"></script>
-  <script src="./js/layout.js?v=20260506-9"></script>
+  <script src="./js/utils.js?v=20260506-10"></script>
+  <script src="./js/layout.js?v=20260506-10"></script>
   <script>
     let falladas = []
     let limite = 20
@@ -59,7 +59,7 @@
     ;(async () => {
       try {
         await requireAuth()
-        initLayout('falladas', 'Falladas', './dashboard.html?v=20260506-9')
+        initLayout('falladas', 'Falladas', './dashboard.html?v=20260506-10')
         setLimite(20)
         await cargar()
       } catch (e) {
@@ -180,7 +180,7 @@
         if (e2) throw e2
 
         guardarSesion({ intentoId: intento.id, preguntas, currentIndex: 0, respuestas: {}, startedAt: new Date().toISOString() })
-        window.location.href = `./test-activo.html?id=${intento.id}&v=20260506-9`
+        window.location.href = `./test-activo.html?v=20260506-10&id=${intento.id}`
       } catch (e) {
         mostrarError(e.message || 'Error al iniciar test.')
         document.getElementById('btnPracticar').disabled = false

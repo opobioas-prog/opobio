@@ -12,7 +12,7 @@
   <header id="appHeader"></header>
 
   <main class="max-w-2xl mx-auto px-4 pt-4 pb-24 space-y-4">
-    <p class="text-[10px] text-gray-300 px-1">Stats v20260506-9</p>
+    <p class="text-[10px] text-gray-300 px-1">Stats v20260506-10</p>
     <div id="resumenGlobal" class="grid grid-cols-3 gap-2"></div>
 
     <div class="flex items-center gap-2 flex-wrap">
@@ -37,8 +37,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js?v=20260506-9"></script>
-  <script src="./js/layout.js?v=20260506-9"></script>
+  <script src="./js/utils.js?v=20260506-10"></script>
+  <script src="./js/layout.js?v=20260506-10"></script>
   <script>
     let statsData = []
     let ordenActivo = 'tasa_asc'
@@ -46,7 +46,7 @@
     ;(async () => {
       try {
         await requireAuth()
-        initLayout('estadisticas', 'Estadisticas', './dashboard.html?v=20260506-9')
+        initLayout('estadisticas', 'Estadisticas', './dashboard.html?v=20260506-10')
         setOrden('tasa_asc')
         await cargarResumen()
         await cargarStats()
