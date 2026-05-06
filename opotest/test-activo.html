@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -34,7 +34,7 @@
       <div id="errorBox" class="hidden text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 rounded-lg"></div>
 
       <div id="preguntaWrap" class="hidden space-y-4 animate-slide">
-        <p class="text-[10px] text-gray-300">Test activo v20260506-7</p>
+        <p class="text-[10px] text-gray-300">Test activo v20260506-9</p>
 
         <div id="enunciadoCard" class="rounded-2xl px-5 py-5 border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700">
           <p id="codigoTema" class="text-xs font-mono text-gray-400 mb-3"></p>
@@ -81,7 +81,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js?v=20260506-7"></script>
+  <script src="./js/utils.js?v=20260506-9"></script>
   <script>
     let sesion = null
     let explicacionAbierta = false
@@ -291,7 +291,7 @@
         if (error) throw error
 
         eliminarSesion(sesion.intentoId)
-        window.location.replace(`./resultados.html?id=${sesion.intentoId}`)
+        window.location.replace(`./resultados.html?v=20260506-9&id=${sesion.intentoId}`)
       } catch (e) {
         toast('Error al guardar: ' + e.message, 'error', 6000)
         document.getElementById('btnSiguiente').disabled = false

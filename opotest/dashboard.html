@@ -25,7 +25,7 @@
       </a>
     </div>
 
-    <a href="./test.html?v=20260506-7" class="block card-link">
+    <a href="./test.html?v=20260506-9" class="block card-link">
       <div class="bg-indigo-600 dark:bg-indigo-700 rounded-2xl p-5 flex items-center gap-4">
         <div class="bg-white/20 rounded-xl p-3 text-white font-bold">TEST</div>
         <div class="flex-1">
@@ -58,27 +58,27 @@
     </div>
 
     <div class="grid grid-cols-2 gap-3">
-      <a href="./temas.html?v=20260506-7" class="block card-link">
+      <a href="./temas.html?v=20260506-9" class="block card-link">
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 flex flex-col gap-2 min-h-[80px] justify-center">
           <div><p class="font-semibold text-sm">Temas</p><p class="text-xs text-gray-400">Ver temario</p></div>
         </div>
       </a>
-      <a href="./importar.html?v=20260506-7" class="block card-link">
+      <a href="./importar.html?v=20260506-9" class="block card-link">
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 flex flex-col gap-2 min-h-[80px] justify-center">
           <div><p class="font-semibold text-sm">Importar</p><p class="text-xs text-gray-400">Excel y TXT</p></div>
         </div>
       </a>
-      <a href="./estadisticas.html?v=20260506-7" class="block card-link">
+      <a href="./estadisticas.html?v=20260506-9" class="block card-link">
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 flex flex-col gap-2 min-h-[80px] justify-center">
           <div><p class="font-semibold text-sm">Estadisticas</p><p class="text-xs text-gray-400">Tus resultados</p></div>
         </div>
       </a>
-      <a href="./falladas.html?v=20260506-7" class="block card-link">
+      <a href="./falladas.html?v=20260506-9" class="block card-link">
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 flex flex-col gap-2 min-h-[80px] justify-center">
           <div><p class="font-semibold text-sm">Falladas</p><p class="text-xs text-gray-400">Repasa errores</p></div>
         </div>
       </a>
-      <a href="./diagnostico.html?v=20260506-7" class="block card-link">
+      <a href="./diagnostico.html?v=20260506-9" class="block card-link">
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 flex flex-col gap-2 min-h-[80px] justify-center">
           <div><p class="font-semibold text-sm">Diagnostico</p><p class="text-xs text-gray-400">Revisar conexion</p></div>
         </div>
@@ -96,8 +96,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js?v=20260506-7"></script>
-  <script src="./js/layout.js?v=20260506-7"></script>
+  <script src="./js/utils.js?v=20260506-9"></script>
+  <script src="./js/layout.js?v=20260506-9"></script>
   <script>
     ;(async () => {
       await requireAuth()
@@ -159,7 +159,7 @@
 
         document.getElementById('ultimosSection').classList.remove('hidden')
         document.getElementById('ultimosList').innerHTML = data.map(i => `
-          <a href="./resultados.html?id=${i.id}" class="block card-link">
+          <a href="./resultados.html?v=20260506-9&id=${i.id}" class="block card-link">
             <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium">${i.total_validas} preguntas</p>
