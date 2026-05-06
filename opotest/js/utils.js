@@ -64,6 +64,53 @@ function getParam(key) {
   return new URLSearchParams(window.location.search).get(key)
 }
 
+// Cuenta preguntas por tema sin descargar todas las filas al navegador.
+async function contarPreguntasPorTema(temaIds, filtros = {}) {
+  const ids = [...new Set((temaIds || []).filter(Boolean))]
+  const resultado = Object.fromEntries(ids.map(id => [id, 0]))
+  const puedeUsarRpc = typeof db.rpc === 'function'
+
+  if (puedeUsarRpc) {
+    try {
+      const { data, error } = await db.rpc('conteo_preguntas_por_tema', {
+        p_activa: filtros.activa ?? null,
+        p_eliminada: filtros.eliminada ?? null,
+      })
+      if (error) throw error
+
+      ;(data || []).forEach(row => {
+        if (row.tema_id in resultado) resultado[row.tema_id] = Number(row.total) || 0
+      })
+      return resultado
+    } catch (e) {
+      console.warn('RPC de conteo no disponible; usando recuento por lotes.', e)
+    }
+  }
+
+  const batchSize = 8
+
+  for (let i = 0; i < ids.length; i += batchSize) {
+    const lote = ids.slice(i, i + batchSize)
+    const consultas = lote.map(async id => {
+      let query = db
+        .from('preguntas')
+        .select('id', { count: 'exact', head: true })
+        .eq('tema_id', id)
+
+      if (filtros.activa !== undefined) query = query.eq('activa', filtros.activa)
+      if (filtros.eliminada !== undefined) query = query.eq('eliminada', filtros.eliminada)
+
+      const { count, error } = await query
+      if (error) throw error
+      resultado[id] = count || 0
+    })
+
+    await Promise.all(consultas)
+  }
+
+  return resultado
+}
+
 // ── Sesión de test (localStorage) ────────────────────
 
 const SESSION_KEY = id => `opotest_session_${id}`
