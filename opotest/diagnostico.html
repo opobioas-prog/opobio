@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpoTest - DiagnÃ³stico</title>
+  <title>OpoTest - Diagnostico</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="./css/style.css">
@@ -12,15 +12,15 @@
   <main class="max-w-2xl mx-auto px-4 py-6 space-y-4">
     <div class="flex items-center justify-between gap-3">
       <div>
-        <h1 class="text-xl font-bold">DiagnÃ³stico</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Comprueba conexiÃ³n, permisos y datos de Supabase.</p>
+        <h1 class="text-xl font-bold">Diagnostico</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Comprueba conexion, permisos y datos de Supabase.</p>
       </div>
-      <a href="./dashboard.html" class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">Volver</a>
+      <a href="./dashboard.html?v=20260506-6" class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">Volver</a>
     </div>
 
     <button onclick="ejecutarDiagnostico()"
       class="w-full min-h-[48px] bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl">
-      Ejecutar diagnÃ³stico
+      Ejecutar diagnostico
     </button>
 
     <div id="resultados" class="space-y-2"></div>
@@ -29,7 +29,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js?v=20260506-4"></script>
+  <script src="./js/utils.js?v=20260506-6"></script>
   <script>
     const resultados = document.getElementById('resultados')
 
@@ -41,13 +41,13 @@
       resultados.innerHTML = ''
 
       const checks = [
-        ['Versión utils.js', () => Promise.resolve(window.OPOTEST_UTILS_VERSION || 'sin versión / archivo antiguo')],
-        ['SesiÃ³n activa', comprobarSesion],
+        ['Version utils.js', () => Promise.resolve(window.OPOTEST_UTILS_VERSION || 'sin version / archivo antiguo')],
+        ['Sesion activa', comprobarSesion],
         ['Leer temas', () => contarTabla('temas')],
         ['Leer preguntas activas', () => contarTabla('preguntas', q => q.eq('activa', true))],
         ['Preguntas no eliminadas', () => contarTabla('preguntas', q => q.eq('activa', true).eq('eliminada', false))],
         ['Preguntas sin tema_id', contarHuerfanas],
-        ['Preguntas cuyo cÃ³digo no existe en temas', contarCodigosSinTema],
+        ['Preguntas cuyo codigo no existe en temas', contarCodigosSinTema],
         ['Recuento por tema_id', comprobarRecuentoTemaId],
         ['Recuento por codigo_tema', comprobarRecuentoCodigo],
         ['Vista estadisticas_preguntas', comprobarVistaStats],
@@ -67,7 +67,7 @@
     async function comprobarSesion() {
       const { data, error } = await conTiempoLimite(db.auth.getSession(), 10000, 'Auth no responde')
       if (error) throw error
-      if (!data.session) throw new Error('No hay sesiÃ³n. Inicia sesiÃ³n desde index.html.')
+      if (!data.session) throw new Error('No hay sesion. Inicia sesion desde index.html.')
       return data.session.user.email || data.session.user.id
     }
 
@@ -82,7 +82,7 @@
       const { count, error } = await conTiempoLimite(
         db.from('preguntas').select('*', { count: 'exact', head: true }).is('tema_id', null),
         10000,
-        'No responde la consulta de huÃ©rfanas'
+        'No responde la consulta de huerfanas'
       )
       if (error) throw error
       return `${count ?? 0}`
@@ -117,13 +117,15 @@
     async function comprobarVistaStats() {
       const { data, error } = await conTiempoLimite(db.from('estadisticas_preguntas').select('pregunta_id').limit(1), 10000)
       if (error) throw error
-      return `${data?.length ?? 0} filas leÃ­bles`
+      return `${data?.length ?? 0} filas leibles`
     }
 
     function pintar(nombre, msg, tipo) {
       const el = document.createElement('div')
       el.className = clases(tipo)
-      el.innerHTML = `<p class="font-semibold text-sm">${nombre}</p><p class="text-xs mt-1 break-words">${msg}</p>`
+      el.innerHTML = `<p class="font-semibold text-sm"></p><p class="text-xs mt-1 break-words"></p>`
+      el.querySelector('p:first-child').textContent = nombre
+      el.querySelector('p:last-child').textContent = msg
       resultados.appendChild(el)
       return el
     }
