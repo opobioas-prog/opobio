@@ -8,17 +8,17 @@ function initLayout(activePage, title = 'OpoTest', backUrl = null) {
     const isDark = document.documentElement.classList.contains('dark')
     header.innerHTML = `
       <div class="flex items-center justify-between h-14 px-4 max-w-2xl mx-auto">
-        <div class="flex items-center gap-2 min-w-[60px]">
+        <div class="flex items-center gap-2 min-w-[70px]">
           ${backUrl
-            ? `<a href="${backUrl}" class="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-indigo-600 transition-colors text-sm font-medium">
-                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            ? `<a href="${backUrl}" class="flex items-center gap-1.5 min-h-[44px] px-2 -ml-2 rounded-xl text-indigo-600 dark:text-indigo-400 active:bg-indigo-50 dark:active:bg-indigo-900/30 transition-colors font-semibold text-sm">
+                 <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-                 </svg>Atrás
+                 </svg><span>Atrás</span>
                </a>`
             : `<a href="./dashboard.html" class="font-bold text-indigo-600 dark:text-indigo-400 text-lg tracking-tight">📚 OpoTest</a>`
           }
         </div>
-        ${backUrl ? `<h1 class="text-base font-semibold text-gray-900 dark:text-white truncate max-w-[180px]">${title}</h1>` : ''}
+        ${backUrl ? `<h1 class="text-base font-semibold text-gray-900 dark:text-white truncate max-w-[160px]">${title}</h1>` : ''}
         <div class="flex items-center gap-1 min-w-[60px] justify-end">
           <button id="themeBtn" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors touch-min" title="Cambiar tema">
             ${isDark ? '☀️' : '🌙'}
@@ -31,6 +31,16 @@ function initLayout(activePage, title = 'OpoTest', backUrl = null) {
         </div>
       </div>`
     header.className = 'sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700'
+
+    // Listeners (DOMContentLoaded ya disparó, hay que engancharse aquí)
+    const themeBtn = document.getElementById('themeBtn')
+    if (themeBtn) themeBtn.addEventListener('click', () => {
+      if (typeof toggleTheme === 'function') toggleTheme()
+    })
+    const logoutBtn = document.getElementById('logoutBtn')
+    if (logoutBtn) logoutBtn.addEventListener('click', () => {
+      if (typeof logout === 'function') logout()
+    })
   }
 
   // ── Bottom Nav ───────────────────────────────────────

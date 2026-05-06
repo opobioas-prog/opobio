@@ -31,15 +31,5 @@ async function logout() {
   window.location.replace('./index.html')
 }
 
-// Rellena el botón de logout si existe en la página
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('logoutBtn')
-  if (btn) btn.addEventListener('click', logout)
-
-  const themeBtn = document.getElementById('themeBtn')
-  if (themeBtn) {
-    const isDark = document.documentElement.classList.contains('dark')
-    themeBtn.textContent = isDark ? '☀️' : '🌙'
-    themeBtn.addEventListener('click', toggleTheme)
-  }
-})
+// Nota: los listeners de logoutBtn y themeBtn se enganchan en layout.js
+// porque initLayout() se ejecuta tras DOMContentLoaded (IIFE async).
