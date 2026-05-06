@@ -1,16 +1,9 @@
-// ══════════════════════════════════════════════════════
-//  CONFIGURACIÓN — edita las dos líneas siguientes
-//  con tus credenciales de Supabase
-// ══════════════════════════════════════════════════════
+// Configuracion de Supabase
+const SUPABASE_URL = 'https://ddlnggscsgguftfbjmdm.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_75fK1H7tDIhLmK3UREm6UQ_80kKvleE'
 
-const SUPABASE_URL = 'https://ddlnggscsgguftfbjmdm.supabase.co'   // ← cambia esto
-const SUPABASE_KEY = 'sb_publishable_75fK1H7tDIhLmK3UREm6UQ_80kKvleE'             // ← cambia esto
-
-// ── Cliente Supabase ──────────────────────────────────
-// (requiere que supabase-js esté cargado antes)
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
-// ── Tema (dark mode) ──────────────────────────────────
 ;(function initTheme() {
   const saved = localStorage.getItem('opotest-theme')
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -22,5 +15,5 @@ function toggleTheme() {
   const isDark = document.documentElement.classList.toggle('dark')
   localStorage.setItem('opotest-theme', isDark ? 'dark' : 'light')
   const btn = document.getElementById('themeBtn')
-  if (btn) btn.textContent = isDark ? '☀️' : '🌙'
+  if (btn) btn.textContent = isDark ? 'Tema claro' : 'Tema oscuro'
 }

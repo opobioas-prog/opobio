@@ -1,4 +1,4 @@
-﻿// â”€â”€ Utilidades de UI compartidas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+﻿// Utilidades de UI compartidas
 
 window.OPOTEST_UTILS_VERSION = '20260506-10'
 
@@ -161,7 +161,7 @@ async function contarPreguntasPorCodigo(codigos, filtros = {}) {
   return resultado
 }
 
-// â”€â”€ SesiÃ³n de test (localStorage) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Sesion de test (localStorage)
 
 const SESSION_KEY = id => `opotest_session_${id}`
 
@@ -183,7 +183,7 @@ function getSesionesAbiertas() {
   return ids
 }
 
-// â”€â”€ Bottom nav: marcar activo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Bottom nav: marcar activo
 function setNavActive(page) {
   document.querySelectorAll('.nav-item').forEach(el => {
     const isActive = el.dataset.page === page

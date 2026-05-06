@@ -51,7 +51,7 @@
         <div id="explicacionWrap" class="hidden">
           <button onclick="toggleExplicacion()"
             class="w-full flex items-center justify-between px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl text-sm font-medium text-amber-700 dark:text-amber-300 touch-min">
-            <span>Ver explicacion</span>
+            <span id="explicacionToggleLabel">Ocultar explicacion</span>
             <span id="explicIcono">v</span>
           </button>
           <div id="explicacionTexto" class="hidden mt-1 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl text-sm text-amber-800 dark:text-amber-200 leading-relaxed animate-fade"></div>
@@ -87,8 +87,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="./js/config.js"></script>
-  <script src="./js/auth.js"></script>
+  <script src="./js/config.js?v=20260506-10"></script>
+  <script src="./js/auth.js?v=20260506-10"></script>
   <script src="./js/utils.js?v=20260506-10"></script>
   <script>
     let sesion = null
@@ -153,6 +153,8 @@
       document.getElementById('feedbackMsg').classList.add('hidden')
       document.getElementById('explicacionWrap').classList.add('hidden')
       document.getElementById('explicacionTexto').classList.add('hidden')
+      document.getElementById('explicacionToggleLabel').textContent = 'Ocultar explicacion'
+      document.getElementById('explicIcono').textContent = '^'
       document.getElementById('noPertinenteWrap').style.display = 'flex'
       document.getElementById('btnNoPerti').classList.remove('hidden')
       document.getElementById('confirmarElim').classList.add('hidden')
@@ -219,6 +221,10 @@
       if (p.explicacion) {
         document.getElementById('explicacionWrap').classList.remove('hidden')
         document.getElementById('explicacionTexto').textContent = p.explicacion
+        document.getElementById('explicacionTexto').classList.remove('hidden')
+        document.getElementById('explicacionToggleLabel').textContent = 'Ocultar explicacion'
+        document.getElementById('explicIcono').textContent = '^'
+        explicacionAbierta = true
       }
 
       document.getElementById('noPertinenteWrap').style.display = 'none'
@@ -230,6 +236,7 @@
       explicacionAbierta = !explicacionAbierta
       document.getElementById('explicacionTexto').classList.toggle('hidden', !explicacionAbierta)
       document.getElementById('explicIcono').textContent = explicacionAbierta ? '^' : 'v'
+      document.getElementById('explicacionToggleLabel').textContent = explicacionAbierta ? 'Ocultar explicacion' : 'Ver explicacion'
     }
 
     function pedirEliminar() {
