@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OpoTest – Resultados</title>
+  <title>OpoTest â€“ Resultados</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="./css/style.css">
@@ -24,8 +24,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js"></script>
-  <script src="./js/layout.js"></script>
+  <script src="./js/utils.js?v=20260506-4"></script>
+  <script src="./js/layout.js?v=20260506-4"></script>
   <script>
     (async () => {
       await requireAuth()
@@ -72,20 +72,20 @@
         <!-- Stats 4 col -->
         <div class="grid grid-cols-4 gap-2">
           ${miniStat('Total', total_validas)}
-          ${miniStat('Aciertos', aciertos, 'text-green-600', '✓')}
-          ${miniStat('Fallos', errores, 'text-red-500', '✗')}
-          ${miniStat('Omitidas', eliminadas, 'text-gray-400', '○')}
+          ${miniStat('Aciertos', aciertos, 'text-green-600', 'âœ“')}
+          ${miniStat('Fallos', errores, 'text-red-500', 'âœ—')}
+          ${miniStat('Omitidas', eliminadas, 'text-gray-400', 'â—‹')}
         </div>
 
         <!-- Acciones -->
         <div class="grid grid-cols-2 gap-3">
           <a href="./test.html"
             class="flex items-center justify-center gap-2 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors text-sm">
-            🔄 Nuevo test
+            ðŸ”„ Nuevo test
           </a>
           <a href="./dashboard.html"
             class="flex items-center justify-center gap-2 min-h-[44px] bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-xl transition-colors text-sm">
-            🏠 Inicio
+            ðŸ  Inicio
           </a>
         </div>
 
@@ -128,7 +128,7 @@
       const cont = document.getElementById('listaRespuestas')
       if (!lista.length) {
         cont.innerHTML = `<div class="text-center py-8 text-gray-400 text-sm">
-          ${modo === 'falladas' ? '🎉 ¡No fallaste ninguna!' : 'Sin resultados.'}
+          ${modo === 'falladas' ? 'ðŸŽ‰ Â¡No fallaste ninguna!' : 'Sin resultados.'}
         </div>`
         return
       }
@@ -138,7 +138,7 @@
     function tarjetaRespuesta(r, num) {
       const p = r.pregunta
       if (!p) return ''
-      const icon = r.eliminada ? '🚫' : r.correcta ? '✅' : '❌'
+      const icon = r.eliminada ? 'ðŸš«' : r.correcta ? 'âœ…' : 'âŒ'
       const border = r.eliminada ? 'border-l-gray-300' : r.correcta ? 'border-l-green-400' : 'border-l-red-400'
       const id = `det_${r.id}`
 
@@ -153,7 +153,7 @@
         return `<div class="flex items-start gap-2 text-xs rounded-lg px-2.5 py-2 ${cls}">
           <span class="font-bold shrink-0">${op.toUpperCase()}.</span>
           <span class="leading-relaxed">${texto}</span>
-          ${esCorrecta ? '<span class="ml-auto shrink-0">✓</span>' : ''}
+          ${esCorrecta ? '<span class="ml-auto shrink-0">âœ“</span>' : ''}
         </div>`
       }).join('')
 
@@ -165,11 +165,11 @@
             <p class="flex-1 text-sm text-gray-800 dark:text-gray-200 leading-snug">
               <span class="text-gray-400 mr-1">${num}.</span>${p.pregunta}
             </p>
-            <span class="text-gray-300 shrink-0 mt-0.5">▼</span>
+            <span class="text-gray-300 shrink-0 mt-0.5">â–¼</span>
           </button>
           <div id="${id}" class="hidden px-4 pb-3 space-y-1.5 border-t border-gray-50 dark:border-gray-700 pt-2 animate-fade">
             ${opciones}
-            ${p.explicacion ? `<div class="mt-1 px-3 py-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-xs text-amber-800 dark:text-amber-200 leading-relaxed"><strong>💡 </strong>${p.explicacion}</div>` : ''}
+            ${p.explicacion ? `<div class="mt-1 px-3 py-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-xs text-amber-800 dark:text-amber-200 leading-relaxed"><strong>ðŸ’¡ </strong>${p.explicacion}</div>` : ''}
             <span class="inline-block text-[10px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-full">${p.codigo_tema}</span>
           </div>
         </div>`

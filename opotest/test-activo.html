@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OpoTest – Test</title>
+  <title>OpoTest â€“ Test</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="./css/style.css">
@@ -14,26 +14,26 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
-  <!-- ── Barra superior fija ── -->
+  <!-- â”€â”€ Barra superior fija â”€â”€ -->
   <div id="topBar" class="shrink-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 py-2.5">
     <div class="max-w-2xl mx-auto flex items-center gap-3">
-      <span id="progNum" class="text-sm font-mono text-gray-500 dark:text-gray-400 shrink-0 tabular-nums">1/—</span>
+      <span id="progNum" class="text-sm font-mono text-gray-500 dark:text-gray-400 shrink-0 tabular-nums">1/â€”</span>
       <div class="progress-track flex-1"><div id="progFill" class="progress-fill bg-indigo-500" style="width:0%"></div></div>
       <div class="flex gap-2 text-xs shrink-0">
-        <span id="cntOk"  class="text-green-500 font-bold">✓0</span>
-        <span id="cntFail" class="text-red-400  font-bold">✗0</span>
+        <span id="cntOk"  class="text-green-500 font-bold">âœ“0</span>
+        <span id="cntFail" class="text-red-400  font-bold">âœ—0</span>
       </div>
     </div>
   </div>
 
-  <!-- ── Área scrollable ── -->
+  <!-- â”€â”€ Ãrea scrollable â”€â”€ -->
   <div id="scrollArea">
     <div class="max-w-2xl mx-auto px-4 pt-4 pb-4" id="contenido">
 
       <!-- Cargando -->
       <div id="loading" class="flex flex-col items-center justify-center py-20 gap-4">
         <div class="spinner"></div>
-        <p class="text-gray-400 text-sm">Cargando test…</p>
+        <p class="text-gray-400 text-sm">Cargando testâ€¦</p>
       </div>
 
       <!-- Pregunta -->
@@ -50,26 +50,26 @@
         <!-- Opciones A-D -->
         <div id="opciones" class="space-y-3"></div>
 
-        <!-- Explicación desplegable -->
+        <!-- ExplicaciÃ³n desplegable -->
         <div id="explicacionWrap" class="hidden">
           <button onclick="toggleExplicacion()"
             class="w-full flex items-center justify-between px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl text-sm font-medium text-amber-700 dark:text-amber-300 touch-min">
-            <span>💡 Ver explicación</span>
-            <span id="explicIcono">▼</span>
+            <span>ðŸ’¡ Ver explicaciÃ³n</span>
+            <span id="explicIcono">â–¼</span>
           </button>
           <div id="explicacionTexto" class="hidden mt-1 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl text-sm text-amber-800 dark:text-amber-200 leading-relaxed animate-fade"></div>
         </div>
 
-        <!-- Botón no pertinente -->
+        <!-- BotÃ³n no pertinente -->
         <div id="noPertinenteWrap" class="flex flex-col items-center gap-2 pt-1">
           <button id="btnNoPerti" onclick="pedirEliminar()"
             class="text-xs text-gray-400 dark:text-gray-500 hover:text-red-400 transition-colors flex items-center gap-1.5 touch-min px-3">
-            🚫 Marcar como no pertinente
+            ðŸš« Marcar como no pertinente
           </button>
-          <!-- Confirmación -->
+          <!-- ConfirmaciÃ³n -->
           <div id="confirmarElim" class="hidden flex items-center gap-2 text-sm animate-fade">
-            <span class="text-orange-400">¿Seguro?</span>
-            <button onclick="confirmarEliminar()" class="text-red-500 font-semibold underline touch-min px-1">Sí</button>
+            <span class="text-orange-400">Â¿Seguro?</span>
+            <button onclick="confirmarEliminar()" class="text-red-500 font-semibold underline touch-min px-1">SÃ­</button>
             <button onclick="cancelarEliminar()" class="text-gray-400 touch-min px-1">No</button>
           </div>
         </div>
@@ -79,14 +79,14 @@
     </div>
   </div>
 
-  <!-- ── Botón siguiente (fijo abajo) ── -->
+  <!-- â”€â”€ BotÃ³n siguiente (fijo abajo) â”€â”€ -->
   <div class="shrink-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 px-4 py-3 safe-bottom">
     <div class="max-w-2xl mx-auto">
       <button id="btnSiguiente" onclick="siguiente()"
         class="w-full min-h-[52px] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:pointer-events-none text-white font-bold text-base rounded-2xl shadow-md transition-colors flex items-center justify-center gap-2"
         disabled>
         <span id="btnLabel">Responde para continuar</span>
-        <span id="btnArrow" class="hidden text-xl">›</span>
+        <span id="btnArrow" class="hidden text-xl">â€º</span>
       </button>
     </div>
   </div>
@@ -94,7 +94,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js"></script>
+  <script src="./js/utils.js?v=20260506-4"></script>
   <script>
     let sesion = null
     let explicacionAbierta = false
@@ -116,7 +116,7 @@
       renderPregunta()
     })()
 
-    // ── Render pregunta actual ────────────────────────────
+    // â”€â”€ Render pregunta actual â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     function renderPregunta() {
       const p   = sesion.preguntas[sesion.currentIndex]
       const res = sesion.respuestas[p.id]
@@ -129,8 +129,8 @@
 
       // Contadores
       const vals = Object.values(sesion.respuestas)
-      document.getElementById('cntOk').textContent   = `✓${vals.filter(r => r.correcta === true).length}`
-      document.getElementById('cntFail').textContent = `✗${vals.filter(r => r.correcta === false).length}`
+      document.getElementById('cntOk').textContent   = `âœ“${vals.filter(r => r.correcta === true).length}`
+      document.getElementById('cntFail').textContent = `âœ—${vals.filter(r => r.correcta === false).length}`
 
       // Enunciado
       document.getElementById('codigoTema').textContent = p.codigo_tema || ''
@@ -184,8 +184,8 @@
               : 'bg-gray-100 dark:bg-gray-700 text-gray-400'
 
         const iconoDer = yaResp
-          ? op === p.respuesta_correcta ? '<span class="shrink-0 text-green-500 ml-auto">✓</span>'
-          : res && op === res.respuesta && !res.correcta ? '<span class="shrink-0 text-red-500 ml-auto">✗</span>'
+          ? op === p.respuesta_correcta ? '<span class="shrink-0 text-green-500 ml-auto">âœ“</span>'
+          : res && op === res.respuesta && !res.correcta ? '<span class="shrink-0 text-red-500 ml-auto">âœ—</span>'
           : '' : ''
 
         const textoCls = !yaResp ? 'text-gray-800 dark:text-gray-200'
@@ -228,20 +228,20 @@
 
       // Mensaje feedback
       const msg = document.getElementById('feedbackMsg')
-      msg.textContent = res.correcta ? '✓ ¡Correcto!' : '✗ Incorrecto'
+      msg.textContent = res.correcta ? 'âœ“ Â¡Correcto!' : 'âœ— Incorrecto'
       msg.className = `mt-3 text-sm font-bold ${res.correcta ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`
       msg.classList.remove('hidden')
 
-      // Explicación
+      // ExplicaciÃ³n
       if (p.explicacion) {
         document.getElementById('explicacionWrap').classList.remove('hidden')
         document.getElementById('explicacionTexto').textContent = p.explicacion
       }
 
-      // Ocultar botón no pertinente
+      // Ocultar botÃ³n no pertinente
       document.getElementById('noPertinenteWrap').style.display = 'none'
 
-      // Botón siguiente
+      // BotÃ³n siguiente
       const esUltima = sesion.currentIndex >= sesion.preguntas.length - 1
       const btn = document.getElementById('btnSiguiente')
       btn.disabled = false
@@ -252,7 +252,7 @@
     function toggleExplicacion() {
       explicacionAbierta = !explicacionAbierta
       document.getElementById('explicacionTexto').classList.toggle('hidden', !explicacionAbierta)
-      document.getElementById('explicIcono').textContent = explicacionAbierta ? '▲' : '▼'
+      document.getElementById('explicIcono').textContent = explicacionAbierta ? 'â–²' : 'â–¼'
     }
 
     function pedirEliminar() {
@@ -292,7 +292,7 @@
 
     async function terminarTest() {
       document.getElementById('btnSiguiente').disabled = true
-      document.getElementById('btnLabel').textContent  = 'Guardando…'
+      document.getElementById('btnLabel').textContent  = 'Guardandoâ€¦'
 
       try {
         const lista = Object.values(sesion.respuestas)

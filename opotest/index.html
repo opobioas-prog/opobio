@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -12,7 +12,7 @@
 
   <div class="w-full max-w-sm animate-fade">
     <div class="text-center mb-8">
-      <div class="text-5xl mb-3">📚</div>
+      <div class="text-5xl mb-3">ðŸ“š</div>
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">OpoTest</h1>
       <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Prepara tus oposiciones</p>
     </div>
@@ -20,7 +20,7 @@
     <div id="tabs" class="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-6">
       <button id="tabLogin" onclick="showTab('login')"
         class="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white">
-        Iniciar sesión
+        Iniciar sesiÃ³n
       </button>
       <button id="tabRegister" onclick="showTab('register')"
         class="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-500 dark:text-gray-400">
@@ -36,33 +36,33 @@
       </div>
 
       <div id="passwordBox">
-        <label id="passwordLabel" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Contraseña</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••"
+        <label id="passwordLabel" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">ContraseÃ±a</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
           class="w-full px-3.5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
       </div>
 
       <div id="errorMsg" class="hidden text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 rounded-lg"></div>
 
       <div id="infoRegister" class="hidden text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg">
-        Tras registrarte puede que recibas un email de confirmación. Si no te llega, revisa la configuración de Auth en Supabase.
+        Tras registrarte puede que recibas un email de confirmaciÃ³n. Si no te llega, revisa la configuraciÃ³n de Auth en Supabase.
       </div>
 
       <button id="submitBtn" onclick="handleSubmit()"
         class="w-full min-h-[48px] bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
-        <span id="btnText">Iniciar sesión</span>
+        <span id="btnText">Iniciar sesiÃ³n</span>
         <div id="btnSpinner" class="hidden w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
       </button>
 
       <button id="forgotBtn" onclick="showTab('reset')"
         class="w-full text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">
-        He olvidado mi contraseña
+        He olvidado mi contraseÃ±a
       </button>
     </div>
 
     <div class="text-center mt-4">
       <button onclick="toggleTheme()"
         class="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-        Cambiar tema 🌙
+        Cambiar tema ðŸŒ™
       </button>
     </div>
   </div>
@@ -102,12 +102,12 @@
       document.getElementById('forgotBtn').classList.toggle('hidden', !isLogin)
       document.getElementById('errorMsg').classList.add('hidden')
 
-      document.getElementById('passwordLabel').textContent = isUpdatePassword ? 'Nueva contraseña' : 'Contraseña'
+      document.getElementById('passwordLabel').textContent = isUpdatePassword ? 'Nueva contraseÃ±a' : 'ContraseÃ±a'
       document.getElementById('password').autocomplete = (isRegister || isUpdatePassword) ? 'new-password' : 'current-password'
       document.getElementById('btnText').textContent =
-        isReset ? 'Enviar enlace de recuperación' :
-        isUpdatePassword ? 'Guardar nueva contraseña' :
-        isLogin ? 'Iniciar sesión' : 'Registrarse'
+        isReset ? 'Enviar enlace de recuperaciÃ³n' :
+        isUpdatePassword ? 'Guardar nueva contraseÃ±a' :
+        isLogin ? 'Iniciar sesiÃ³n' : 'Registrarse'
     }
 
     async function handleSubmit() {
@@ -117,13 +117,13 @@
       if (currentTab === 'reset') {
         if (!email) return showError('Introduce tu email.')
       } else if (currentTab === 'updatePassword') {
-        if (!password) return showError('Introduce la nueva contraseña.')
+        if (!password) return showError('Introduce la nueva contraseÃ±a.')
       } else if (!email || !password) {
-        return showError('Introduce email y contraseña.')
+        return showError('Introduce email y contraseÃ±a.')
       }
 
       if (currentTab !== 'reset' && password.length < 6) {
-        return showError('La contraseña debe tener al menos 6 caracteres.')
+        return showError('La contraseÃ±a debe tener al menos 6 caracteres.')
       }
 
       setLoading(true)
@@ -140,31 +140,31 @@
           })
           if (error) throw error
           if (data.session) window.location.replace('./dashboard.html')
-          else showInfo('Cuenta creada. Revisa tu email para confirmarla. Después vuelve aquí e inicia sesión.')
+          else showInfo('Cuenta creada. Revisa tu email para confirmarla. DespuÃ©s vuelve aquÃ­ e inicia sesiÃ³n.')
         } else if (currentTab === 'reset') {
           const { error } = await db.auth.resetPasswordForEmail(email, {
             redirectTo: new URL('./index.html', window.location.href).href,
           })
           if (error) throw error
-          showInfo('Te he enviado un enlace para cambiar la contraseña. Revisa tu correo.')
+          showInfo('Te he enviado un enlace para cambiar la contraseÃ±a. Revisa tu correo.')
         } else if (currentTab === 'updatePassword') {
           const { error } = await db.auth.updateUser({ password })
           if (error) throw error
           await db.auth.signOut()
           window.history.replaceState({}, document.title, './index.html')
           showTab('login')
-          showInfo('Contraseña actualizada. Ya puedes entrar con la nueva contraseña.')
+          showInfo('ContraseÃ±a actualizada. Ya puedes entrar con la nueva contraseÃ±a.')
         }
       } catch (err) {
         const msgs = {
-          'Invalid login credentials': 'Email o contraseña incorrectos.',
+          'Invalid login credentials': 'Email o contraseÃ±a incorrectos.',
           'Email not confirmed': 'Confirma tu email antes de entrar.',
           'User already registered': 'Ya existe una cuenta con ese email.',
-          'Signup is disabled': 'El registro está desactivado en Supabase.',
+          'Signup is disabled': 'El registro estÃ¡ desactivado en Supabase.',
           'Email rate limit exceeded': 'Supabase ha limitado temporalmente los emails. Espera unos minutos.',
-          'Password should be at least 6': 'La contraseña debe tener al menos 6 caracteres.',
-          'New password should be different from the old password': 'La nueva contraseña debe ser distinta de la anterior.',
-          'Auth session missing': 'El enlace de recuperación ha caducado. Pide otro email de recuperación.',
+          'Password should be at least 6': 'La contraseÃ±a debe tener al menos 6 caracteres.',
+          'New password should be different from the old password': 'La nueva contraseÃ±a debe ser distinta de la anterior.',
+          'Auth session missing': 'El enlace de recuperaciÃ³n ha caducado. Pide otro email de recuperaciÃ³n.',
         }
         showError(Object.entries(msgs).find(([k]) => err.message?.includes(k))?.[1] || err.message)
       } finally {

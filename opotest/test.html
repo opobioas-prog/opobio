@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OpoTest – Configurar test</title>
+  <title>OpoTest â€“ Configurar test</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="./css/style.css">
@@ -14,9 +14,9 @@
 
   <main class="max-w-2xl mx-auto px-4 pt-4 pb-32 space-y-5">
 
-    <!-- Número de preguntas -->
+    <!-- NÃºmero de preguntas -->
     <div>
-      <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nº de preguntas</h2>
+      <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">NÂº de preguntas</h2>
       <div class="grid grid-cols-4 gap-2" id="cantidadBtns">
         <button data-val="20"    onclick="setCantidad(20)"    class="cantidad-btn activo py-3 rounded-xl text-sm font-medium border-2 border-indigo-600 bg-indigo-600 text-white transition-colors">20</button>
         <button data-val="40"    onclick="setCantidad(40)"    class="cantidad-btn py-3 rounded-xl text-sm font-medium border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors">40</button>
@@ -35,7 +35,7 @@
       </div>
     </button>
 
-    <!-- Selección de temas -->
+    <!-- SelecciÃ³n de temas -->
     <div>
       <div class="flex items-center justify-between mb-2">
         <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -56,19 +56,19 @@
       <!-- Empty -->
       <div id="emptyTemas" class="hidden text-center py-8">
         <p class="text-gray-400 text-sm">No hay temas con preguntas.<br>Importa datos primero.</p>
-        <a href="./importar.html" class="inline-block mt-3 text-indigo-600 text-sm font-medium">Ir a Importar →</a>
+        <a href="./importar.html" class="inline-block mt-3 text-indigo-600 text-sm font-medium">Ir a Importar â†’</a>
       </div>
     </div>
 
   </main>
 
-  <!-- Botón iniciar (sticky) -->
+  <!-- BotÃ³n iniciar (sticky) -->
   <div class="fixed bottom-16 left-0 right-0 px-4 py-3 bg-gradient-to-t from-gray-50 dark:from-gray-900 to-transparent pointer-events-none">
     <div class="max-w-2xl mx-auto pointer-events-auto">
       <button id="btnIniciar" onclick="iniciarTest()"
         class="w-full min-h-[52px] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none text-white font-bold text-base rounded-2xl shadow-lg transition-colors flex items-center justify-center gap-2"
         disabled>
-        <span>▶</span>
+        <span>â–¶</span>
         <span id="btnLabel">Selecciona al menos un tema</span>
         <div id="spinnerBtn" class="hidden w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
       </button>
@@ -80,8 +80,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js"></script>
-  <script src="./js/layout.js"></script>
+  <script src="./js/utils.js?v=20260506-4"></script>
+  <script src="./js/layout.js?v=20260506-4"></script>
   <script src="./js/shuffle.js"></script>
   <script>
     let temas         = []
@@ -203,7 +203,7 @@
               <span class="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-200 cursor-pointer"
                 onclick="toggleExpand('${grupo}')">${grupo}</span>
               <span class="text-xs text-gray-400">${nSel}/${gTemas.length}</span>
-              <button onclick="toggleExpand('${grupo}')" class="text-gray-400 text-sm">${isOpen ? '▲' : '▼'}</button>
+              <button onclick="toggleExpand('${grupo}')" class="text-gray-400 text-sm">${isOpen ? 'â–²' : 'â–¼'}</button>
             </div>
             ${isOpen ? `
               <div class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -277,7 +277,7 @@
       const btn   = document.getElementById('btnIniciar')
       btn.disabled = selArr.length === 0 || (nTest === 0 && !seleccionConConteoPendiente)
       document.getElementById('btnLabel').textContent = selArr.length > 0 && nTest > 0
-        ? `Iniciar test · ${nTest} preguntas`
+        ? `Iniciar test Â· ${nTest} preguntas`
         : selArr.length > 0 && seleccionConConteoPendiente
           ? 'Iniciar test'
           : 'Selecciona al menos un tema'

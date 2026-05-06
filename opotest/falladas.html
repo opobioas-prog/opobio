@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OpoTest – Preguntas falladas</title>
+  <title>OpoTest â€“ Preguntas falladas</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="./css/style.css">
@@ -16,13 +16,13 @@
 
     <!-- Info -->
     <div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 rounded-xl p-4 flex gap-3">
-      <span class="text-xl shrink-0">⚠️</span>
+      <span class="text-xl shrink-0">âš ï¸</span>
       <p class="text-sm text-orange-700 dark:text-orange-300">
-        Preguntas ordenadas de menor a mayor tasa de acierto. Practica las que más te cuestan.
+        Preguntas ordenadas de menor a mayor tasa de acierto. Practica las que mÃ¡s te cuestan.
       </p>
     </div>
 
-    <!-- Filtro grupos + límite -->
+    <!-- Filtro grupos + lÃ­mite -->
     <div class="space-y-2">
       <div id="gruposFiltro" class="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4"></div>
       <div class="flex items-center gap-2">
@@ -30,7 +30,7 @@
         <button onclick="setLimite(20)"  data-l="20"  class="limite-btn activo px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-600 text-white">20</button>
         <button onclick="setLimite(50)"  data-l="50"  class="limite-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-500">50</button>
         <button onclick="setLimite(100)" data-l="100" class="limite-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-500">100</button>
-        <button onclick="cargar()" class="ml-auto text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm touch-min px-2">🔄</button>
+        <button onclick="cargar()" class="ml-auto text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm touch-min px-2">ðŸ”„</button>
       </div>
     </div>
 
@@ -39,8 +39,8 @@
 
     <!-- Empty -->
     <div id="empty" class="hidden text-center py-12">
-      <p class="text-4xl mb-3">⚠️</p>
-      <p class="text-gray-400 text-sm">Sin historial aún.<br>Realiza tests primero.</p>
+      <p class="text-4xl mb-3">âš ï¸</p>
+      <p class="text-gray-400 text-sm">Sin historial aÃºn.<br>Realiza tests primero.</p>
     </div>
 
     <!-- Lista -->
@@ -51,12 +51,12 @@
 
   </main>
 
-  <!-- Botón practicar (sticky) -->
+  <!-- BotÃ³n practicar (sticky) -->
   <div id="btnWrap" class="hidden fixed bottom-16 left-0 right-0 px-4 py-3 bg-gradient-to-t from-gray-50 dark:from-gray-900 to-transparent pointer-events-none">
     <div class="max-w-2xl mx-auto pointer-events-auto">
       <button id="btnPracticar" onclick="iniciarTestFalladas()"
         class="w-full min-h-[52px] bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-base rounded-2xl shadow-lg transition-colors flex items-center justify-center gap-2">
-        <span>▶</span>
+        <span>â–¶</span>
         <span id="btnPLabel">Practicar estas preguntas</span>
         <div id="spinnerBtn" class="hidden w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
       </button>
@@ -68,8 +68,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js"></script>
-  <script src="./js/layout.js"></script>
+  <script src="./js/utils.js?v=20260506-4"></script>
+  <script src="./js/layout.js?v=20260506-4"></script>
   <script>
     let falladas    = []
     let grupoActivo = ''
@@ -77,7 +77,7 @@
 
     (async () => {
       await requireAuth()
-      initLayout('falladas', 'Más falladas', './dashboard.html')
+      initLayout('falladas', 'MÃ¡s falladas', './dashboard.html')
       await cargarGrupos()
       await cargar()
     })()
@@ -177,9 +177,9 @@
                 <span class="text-sm font-bold ${colorT} shrink-0">${tasa}%</span>
               </div>
               <div class="flex gap-3 mt-1.5 text-[10px] text-gray-400">
-                <span>🔁 ${s.veces_mostrada}</span>
-                <span class="text-green-500 font-medium">✓ ${s.aciertos}</span>
-                <span class="text-red-400 font-medium">✗ ${s.fallos}</span>
+                <span>ðŸ” ${s.veces_mostrada}</span>
+                <span class="text-green-500 font-medium">âœ“ ${s.aciertos}</span>
+                <span class="text-red-400 font-medium">âœ— ${s.fallos}</span>
               </div>
             </div>
           </div>`
@@ -198,7 +198,7 @@
         if (error) throw error
         if (!preguntas?.length) { toast('No hay preguntas disponibles', 'warning'); return }
 
-        // Ordenar: más falladas primero
+        // Ordenar: mÃ¡s falladas primero
         const tasaMap = Object.fromEntries(falladas.map(f => [f.pregunta_id, f.tasa_acierto]))
         preguntas.sort((a, b) => (tasaMap[a.id] ?? 100) - (tasaMap[b.id] ?? 100))
 
