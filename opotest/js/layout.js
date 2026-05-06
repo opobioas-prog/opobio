@@ -1,4 +1,4 @@
-function initLayout(activePage, title = 'OpoTest', backUrl = null) {
+﻿function initLayout(activePage, title = 'OpoTest', backUrl = null) {
   const header = document.getElementById('appHeader')
   if (header) {
     const isDark = document.documentElement.classList.contains('dark')
@@ -39,7 +39,7 @@ function initLayout(activePage, title = 'OpoTest', backUrl = null) {
   if (nav) {
     const items = [
       { page: 'dashboard', href: './dashboard.html', label: 'Inicio' },
-      { page: 'temas', href: './temas.html?v=20260506-5', label: 'Temas' },
+      { page: 'temas', href: './temas.html?v=20260506-6', label: 'Temas' },
       { page: 'importar', href: './importar.html', label: 'Importar' },
       { page: 'estadisticas', href: './estadisticas.html', label: 'Stats' },
       { page: 'falladas', href: './falladas.html', label: 'Falladas' },

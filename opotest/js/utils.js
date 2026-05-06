@@ -1,6 +1,6 @@
-// ── Utilidades de UI compartidas ──────────────────────
+﻿// â”€â”€ Utilidades de UI compartidas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-window.OPOTEST_UTILS_VERSION = '20260506-5'
+window.OPOTEST_UTILS_VERSION = '20260506-6'
 
 // Mostrar/ocultar spinner de carga
 function showSpinner(id = 'spinner') {
@@ -49,7 +49,7 @@ function fmtFecha(iso) {
   })
 }
 
-// Color según porcentaje
+// Color segÃºn porcentaje
 function colorPct(pct) {
   if (pct >= 70) return 'text-green-600 dark:text-green-400'
   if (pct >= 50) return 'text-yellow-600 dark:text-yellow-400'
@@ -61,7 +61,7 @@ function bgColorPct(pct) {
   return 'bg-red-500'
 }
 
-// Parámetros de URL
+// ParÃ¡metros de URL
 function getParam(key) {
   return new URLSearchParams(window.location.search).get(key)
 }
@@ -149,7 +149,7 @@ async function contarPreguntasPorCodigo(codigos, filtros = {}) {
       const { count, error } = await conTiempoLimite(
         query,
         8000,
-        'El recuento de preguntas por código ha tardado demasiado'
+        'El recuento de preguntas por cÃ³digo ha tardado demasiado'
       )
       if (error) throw error
       resultado[codigo] = count || 0
@@ -161,7 +161,7 @@ async function contarPreguntasPorCodigo(codigos, filtros = {}) {
   return resultado
 }
 
-// ── Sesión de test (localStorage) ────────────────────
+// â”€â”€ SesiÃ³n de test (localStorage) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SESSION_KEY = id => `opotest_session_${id}`
 
@@ -183,7 +183,7 @@ function getSesionesAbiertas() {
   return ids
 }
 
-// ── Bottom nav: marcar activo ─────────────────────────
+// â”€â”€ Bottom nav: marcar activo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function setNavActive(page) {
   document.querySelectorAll('.nav-item').forEach(el => {
     const isActive = el.dataset.page === page
