@@ -20,7 +20,7 @@
     </div>
 
     <div id="gruposFiltro" class="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4"></div>
-    <p id="resumen" class="text-xs text-gray-400 px-1">Temas v20260506-4</p>
+    <p id="resumen" class="text-xs text-gray-400 px-1">Temas v20260506-5</p>
 
     <div id="spinner" class="flex justify-center py-16"><div class="spinner"></div></div>
     <div id="lista" class="hidden space-y-5"></div>
@@ -37,8 +37,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js?v=20260506-4"></script>
-  <script src="./js/layout.js?v=20260506-4"></script>
+  <script src="./js/utils.js?v=20260506-5"></script>
+  <script src="./js/layout.js?v=20260506-5"></script>
   <script>
     let todosLosTemas = []
     let grupoActivo = ''
@@ -141,7 +141,7 @@
       const resumen = document.getElementById('resumen')
       const pendientes = filtrados.some(t => t.preguntas_count === null)
       const total = filtrados.reduce((s, t) => s + (t.preguntas_count || 0), 0)
-      resumen.textContent = `Temas v20260506-4 - ${filtrados.length} temas - ${pendientes ? 'calculando preguntas' : total.toLocaleString('es-ES') + ' preguntas'}`
+      resumen.textContent = `Temas v20260506-5 - ${filtrados.length} temas - ${pendientes ? 'calculando preguntas' : total.toLocaleString('es-ES') + ' preguntas'}`
 
       if (!filtrados.length) {
         lista.classList.add('hidden')
