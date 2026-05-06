@@ -1,6 +1,6 @@
 ﻿// â”€â”€ Utilidades de UI compartidas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-window.OPOTEST_UTILS_VERSION = '20260506-6'
+window.OPOTEST_UTILS_VERSION = '20260506-7'
 
 // Mostrar/ocultar spinner de carga
 function showSpinner(id = 'spinner') {
@@ -49,7 +49,7 @@ function fmtFecha(iso) {
   })
 }
 
-// Color segÃºn porcentaje
+// Color segun porcentaje
 function colorPct(pct) {
   if (pct >= 70) return 'text-green-600 dark:text-green-400'
   if (pct >= 50) return 'text-yellow-600 dark:text-yellow-400'
@@ -61,7 +61,7 @@ function bgColorPct(pct) {
   return 'bg-red-500'
 }
 
-// ParÃ¡metros de URL
+// Parametros de URL
 function getParam(key) {
   return new URLSearchParams(window.location.search).get(key)
 }
@@ -149,7 +149,7 @@ async function contarPreguntasPorCodigo(codigos, filtros = {}) {
       const { count, error } = await conTiempoLimite(
         query,
         8000,
-        'El recuento de preguntas por cÃ³digo ha tardado demasiado'
+        'El recuento de preguntas por codigo ha tardado demasiado'
       )
       if (error) throw error
       resultado[codigo] = count || 0
