@@ -41,7 +41,7 @@
         <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
           Temas <span id="selCount" class="text-indigo-600 dark:text-indigo-400">(0)</span>
         </h2>
-        <button onclick="toggleTodos()" class="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Seleccionar todo</button>
+        <button id="btnToggleTodos" onclick="toggleTodos()" class="text-xs text-indigo-600 dark:text-indigo-400 font-medium disabled:opacity-40" disabled>Seleccionar todo</button>
       </div>
 
       <!-- Filtro grupos -->
@@ -90,6 +90,7 @@
     let incluirElim   = false
     let grupoFiltro   = ''
     let expandido     = {}
+    let temasCargados = false
 
     (async () => {
       await requireAuth()
@@ -113,27 +114,33 @@
         )
         if (error) throw error
 
-        const countMap = await conTiempoLimite(
-          contarPreguntasPorTema((data || []).map(t => t.id), {
-            activa: true,
-            eliminada: false,
-          }),
-          12000,
-          'El recuento de preguntas ha tardado demasiado'
-        )
+        const filtrosConteo = { activa: true, eliminada: false }
+        const recuentos = await Promise.allSettled([
+          contarPreguntasPorTema((data || []).map(t => t.id), filtrosConteo),
+          contarPreguntasPorCodigo((data || []).map(t => t.codigo), filtrosConteo),
+        ])
+        const countById = recuentos[0].status === 'fulfilled' ? recuentos[0].value : {}
+        const countByCodigo = recuentos[1].status === 'fulfilled' ? recuentos[1].value : {}
+        const conteoDisponible = recuentos.some(r => r.status === 'fulfilled')
+        if (!conteoDisponible) toast('No se pudieron contar las preguntas. Puedes seleccionar temas igualmente.', 'warning', 5000)
 
         temas = (data || []).map(t => ({
           ...t,
-          preguntas_count: countMap[t.id] || 0,
-        })).filter(t => t.preguntas_count > 0)
+          preguntas_count: conteoDisponible ? Math.max(countById[t.id] || 0, countByCodigo[t.codigo] || 0) : null,
+        })).filter(t => t.preguntas_count === null || t.preguntas_count > 0)
 
+        temasCargados = true
         renderGrupos()
         renderTemas()
       } catch (e) {
         console.error(e)
         toast('Error al cargar temas: ' + e.message, 'error', 5000)
       }
-      finally { document.getElementById('spinner').classList.add('hidden') }
+      finally {
+        temasCargados = true
+        document.getElementById('spinner').classList.add('hidden')
+        document.getElementById('btnToggleTodos').disabled = temas.length === 0
+      }
     }
 
     function renderGrupos() {
@@ -162,7 +169,21 @@
       const cont = document.getElementById('temasContainer')
       const empty = document.getElementById('emptyTemas')
 
-      if (temas.length === 0) { empty.classList.remove('hidden'); return }
+      if (!temasCargados) {
+        empty.classList.add('hidden')
+        cont.classList.add('hidden')
+        return
+      }
+
+      document.getElementById('spinner').classList.add('hidden')
+      document.getElementById('btnToggleTodos').disabled = temas.length === 0
+
+      if (temas.length === 0) {
+        cont.classList.add('hidden')
+        empty.classList.remove('hidden')
+        actualizarBoton()
+        return
+      }
       empty.classList.add('hidden')
       cont.classList.remove('hidden')
 
@@ -193,7 +214,7 @@
                     <span class="flex-1 text-sm text-gray-700 dark:text-gray-300 leading-snug">
                       <span class="font-mono text-xs text-gray-400 mr-1">${t.codigo}</span>${t.tema}
                     </span>
-                    <span class="text-xs text-gray-400 shrink-0">${t.preguntas_count}</span>
+                    <span class="text-xs text-gray-400 shrink-0">${t.preguntas_count === null ? '?' : t.preguntas_count}</span>
                   </label>`).join('')}
               </div>` : ''}
           </div>`
@@ -222,6 +243,7 @@
     }
 
     function toggleTodos() {
+      if (!temasCargados || temas.length === 0) return
       const filtrados = grupoFiltro ? temas.filter(t => t.grupo === grupoFiltro) : temas
       const todos = filtrados.every(t => seleccionados.has(t.id))
       filtrados.forEach(t => todos ? seleccionados.delete(t.id) : seleccionados.add(t.id))
@@ -249,13 +271,16 @@
     function actualizarBoton() {
       const selArr = Array.from(seleccionados)
       document.getElementById('selCount').textContent = `(${selArr.length})`
+      const seleccionConConteoPendiente = temas.some(t => seleccionados.has(t.id) && t.preguntas_count === null)
       const totalDisp = temas.filter(t => seleccionados.has(t.id)).reduce((s,t) => s+(t.preguntas_count||0), 0)
       const nTest = cantidad === 'todas' ? totalDisp : Math.min(totalDisp, cantidad)
       const btn   = document.getElementById('btnIniciar')
-      btn.disabled = selArr.length === 0 || nTest === 0
+      btn.disabled = selArr.length === 0 || (nTest === 0 && !seleccionConConteoPendiente)
       document.getElementById('btnLabel').textContent = selArr.length > 0 && nTest > 0
         ? `Iniciar test · ${nTest} preguntas`
-        : 'Selecciona al menos un tema'
+        : selArr.length > 0 && seleccionConConteoPendiente
+          ? 'Iniciar test'
+          : 'Selecciona al menos un tema'
     }
 
     async function iniciarTest() {
@@ -265,11 +290,34 @@
 
       try {
         const temasIds = Array.from(seleccionados)
-        let query = db.from('preguntas').select('*').in('tema_id', temasIds).eq('activa', true)
-        if (!incluirElim) query = query.eq('eliminada', false)
-        const { data: preguntas, error } = await query
+        const codigos = temas
+          .filter(t => seleccionados.has(t.id))
+          .map(t => t.codigo)
+          .filter(Boolean)
+        const consultas = []
+
+        if (temasIds.length) {
+          let porId = db.from('preguntas').select('*').in('tema_id', temasIds).eq('activa', true)
+          if (!incluirElim) porId = porId.eq('eliminada', false)
+          consultas.push(porId)
+        }
+
+        if (codigos.length) {
+          let porCodigo = db.from('preguntas').select('*').in('codigo_tema', codigos).eq('activa', true)
+          if (!incluirElim) porCodigo = porCodigo.eq('eliminada', false)
+          consultas.push(porCodigo)
+        }
+
+        const respuestas = await Promise.all(consultas)
+        const error = respuestas.find(r => r.error)?.error
         if (error) throw error
-        if (!preguntas?.length) { toast('No hay preguntas disponibles', 'warning'); return }
+        const preguntas = [...new Map(respuestas.flatMap(r => r.data || []).map(p => [p.id, p])).values()]
+        if (!preguntas?.length) {
+          toast('No hay preguntas disponibles', 'warning')
+          document.getElementById('btnIniciar').disabled = false
+          document.getElementById('spinnerBtn').classList.add('hidden')
+          return
+        }
 
         const mezcladas = shuffle(preguntas)
         const recorte   = cantidad === 'todas' ? mezcladas : mezcladas.slice(0, cantidad)

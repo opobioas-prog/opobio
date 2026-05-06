@@ -210,7 +210,17 @@
           r.total  = preguntas.length
           r.errores = [...errores]
 
-          const { data: temaData } = await db.from('temas').select('id').eq('codigo', r.codigo).maybeSingle()
+          const { data: temaData, error: temaError } = await db
+            .from('temas')
+            .select('id,codigo,tema')
+            .eq('codigo', r.codigo)
+            .maybeSingle()
+          if (temaError) throw temaError
+          if (!temaData) {
+            r.errores.push(`No existe ningún tema con código "${r.codigo}". Corrige el nombre del TXT o importa primero el Excel de temas.`)
+            resultados.push(r)
+            continue
+          }
 
           for (const p of preguntas) {
             const hash = await generarHash(`${r.codigo}|${p.pregunta}|${p.opcion_a}|${p.opcion_b}|${p.opcion_c}|${p.opcion_d}`)
@@ -218,7 +228,7 @@
             if (existe) { r.duplicadas++; continue }
 
             const { error } = await db.from('preguntas').insert({
-              tema_id: temaData?.id ?? null, codigo_tema: r.codigo,
+              tema_id: temaData.id, codigo_tema: temaData.codigo,
               pregunta: p.pregunta, opcion_a: p.opcion_a, opcion_b: p.opcion_b,
               opcion_c: p.opcion_c, opcion_d: p.opcion_d,
               respuesta_correcta: p.respuesta_correcta, explicacion: p.explicacion,

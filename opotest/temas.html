@@ -53,14 +53,34 @@
   <script>
     let todosLosTemas = []
     let grupoActivo   = ''
+    let cargaFinalizada = false
 
     (async () => {
-      await requireAuth()
-      initLayout('temas', 'Temas', './dashboard.html')
-      await cargarTemas()
+      setTimeout(() => {
+        if (!cargaFinalizada) mostrarErrorCarga('La página está tardando demasiado. Comprueba tu sesión de Supabase y recarga.')
+      }, 12000)
 
-      document.getElementById('searchInput').addEventListener('input', renderLista)
+      try {
+        await requireAuth()
+        initLayout('temas', 'Temas', './dashboard.html')
+        document.getElementById('searchInput').addEventListener('input', renderLista)
+        await cargarTemas()
+      } catch (e) {
+        console.error(e)
+        mostrarErrorCarga(e.message || 'No se pudo cargar la página de temas.')
+      }
     })()
+
+    function mostrarErrorCarga(msg) {
+      cargaFinalizada = true
+      document.getElementById('spinner').classList.add('hidden')
+      document.getElementById('lista').classList.add('hidden')
+      document.getElementById('empty').classList.remove('hidden')
+      document.getElementById('emptyMsg').textContent = msg
+      document.getElementById('emptyLink').textContent = 'Volver al inicio'
+      document.getElementById('emptyLink').href = './index.html'
+      document.getElementById('emptyLink').style.display = ''
+    }
 
     async function cargarTemas() {
       try {
@@ -82,11 +102,12 @@
 
         renderGrupos()
         renderLista()
+        cargaFinalizada = true
         document.getElementById('spinner').classList.add('hidden')
         cargarRecuentosTemas()
       } catch (e) {
         console.error(e)
-        toast('Error al cargar temas: ' + e.message, 'error', 5000)
+        mostrarErrorCarga('Error al cargar temas: ' + e.message)
       } finally {
         document.getElementById('spinner').classList.add('hidden')
       }
@@ -94,10 +115,16 @@
 
     async function cargarRecuentosTemas() {
       try {
-        const countMap = await contarPreguntasPorTema(todosLosTemas.map(t => t.id), { activa: true })
+        const filtrosConteo = { activa: true }
+        const recuentos = await Promise.allSettled([
+          contarPreguntasPorTema(todosLosTemas.map(t => t.id), filtrosConteo),
+          contarPreguntasPorCodigo(todosLosTemas.map(t => t.codigo), filtrosConteo),
+        ])
+        const countById = recuentos[0].status === 'fulfilled' ? recuentos[0].value : {}
+        const countByCodigo = recuentos[1].status === 'fulfilled' ? recuentos[1].value : {}
         todosLosTemas = todosLosTemas.map(t => ({
           ...t,
-          preguntas_count: countMap[t.id] || 0,
+          preguntas_count: Math.max(countById[t.id] || 0, countByCodigo[t.codigo] || 0),
         }))
         renderLista()
       } catch (e) {
