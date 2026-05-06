@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OpoTest – Temas</title>
+  <title>OpoTest â€“ Temas</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="./css/style.css">
@@ -16,8 +16,8 @@
 
     <!-- Buscador -->
     <div class="relative">
-      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-      <input id="searchInput" type="search" placeholder="Buscar tema o código…"
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">ðŸ”</span>
+      <input id="searchInput" type="search" placeholder="Buscar tema o cÃ³digoâ€¦"
         class="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
     </div>
 
@@ -26,6 +26,7 @@
 
     <!-- Resumen -->
     <p id="resumen" class="text-xs text-gray-400 px-1"></p>
+    <p id="versionTemas" class="text-[10px] text-gray-300 px-1">Temas v20260506-3</p>
 
     <!-- Spinner -->
     <div id="spinner" class="flex justify-center py-16"><div class="spinner"></div></div>
@@ -35,10 +36,10 @@
 
     <!-- Empty state -->
     <div id="empty" class="hidden text-center py-12">
-      <p class="text-4xl mb-3">📖</p>
+      <p class="text-4xl mb-3">ðŸ“–</p>
       <p class="font-medium text-gray-600 dark:text-gray-400">No hay temas</p>
       <p class="text-sm text-gray-400 mt-1" id="emptyMsg">Importa el Excel de temas primero.</p>
-      <a href="./importar.html" id="emptyLink" class="inline-block mt-4 text-indigo-600 dark:text-indigo-400 text-sm font-medium">Ir a Importar →</a>
+      <a href="./importar.html" id="emptyLink" class="inline-block mt-4 text-indigo-600 dark:text-indigo-400 text-sm font-medium">Ir a Importar â†’</a>
     </div>
 
   </main>
@@ -48,7 +49,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js"></script>
+  <script src="./js/utils.js?v=20260506-2"></script>
   <script src="./js/layout.js"></script>
   <script>
     let todosLosTemas = []
@@ -57,7 +58,7 @@
 
     (async () => {
       setTimeout(() => {
-        if (!cargaFinalizada) mostrarErrorCarga('La página está tardando demasiado. Comprueba tu sesión de Supabase y recarga.')
+        if (!cargaFinalizada) mostrarErrorCarga('La pÃ¡gina estÃ¡ tardando demasiado. Comprueba tu sesiÃ³n de Supabase y recarga.')
       }, 12000)
 
       try {
@@ -67,7 +68,7 @@
         await cargarTemas()
       } catch (e) {
         console.error(e)
-        mostrarErrorCarga(e.message || 'No se pudo cargar la página de temas.')
+        mostrarErrorCarga(e.message || 'No se pudo cargar la pÃ¡gina de temas.')
       }
     })()
 
@@ -100,10 +101,10 @@
           preguntas_count: null,
         }))
 
-        renderGrupos()
-        renderLista()
         cargaFinalizada = true
         document.getElementById('spinner').classList.add('hidden')
+        renderGrupos()
+        renderLista()
         cargarRecuentosTemas()
       } catch (e) {
         console.error(e)
@@ -143,13 +144,17 @@
       if (grupos.length <= 1) return
 
       const cont = document.getElementById('gruposFiltro')
-      cont.innerHTML = ['', ...grupos].map(g => `
-        <button onclick="setGrupo('${g}')"
-          class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors
-                 ${g === grupoActivo ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}"
-          data-grupo="${g}">
-          ${g || 'Todos'}
-        </button>`).join('')
+      cont.innerHTML = ''
+      ;['', ...grupos].forEach(g => {
+        const btn = document.createElement('button')
+        btn.type = 'button'
+        btn.dataset.grupo = g || ''
+        btn.textContent = g || 'Todos'
+        btn.className = `shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors
+          ${g === grupoActivo ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`
+        btn.addEventListener('click', () => setGrupo(g || ''))
+        cont.appendChild(btn)
+      })
     }
 
     function setGrupo(g) {
@@ -167,7 +172,9 @@
 
       const filtrados = todosLosTemas.filter(t => {
         const okGrupo   = !grupoActivo || t.grupo === grupoActivo
-        const okSearch  = !busqueda || t.tema.toLowerCase().includes(busqueda) || t.codigo.toLowerCase().includes(busqueda)
+        const temaTexto = String(t.tema || '').toLowerCase()
+        const codigoTexto = String(t.codigo || '').toLowerCase()
+        const okSearch  = !busqueda || temaTexto.includes(busqueda) || codigoTexto.includes(busqueda)
         return okGrupo && okSearch
       })
 
@@ -177,14 +184,14 @@
 
       const recuentosPendientes = filtrados.some(t => t.preguntas_count === null)
       const totalPreguntas = filtrados.reduce((s,t) => s + (t.preguntas_count || 0), 0)
-      resumen.textContent = `${filtrados.length} tema${filtrados.length !== 1 ? 's' : ''} · ${recuentosPendientes ? 'calculando preguntas...' : totalPreguntas.toLocaleString('es-ES') + ' preguntas'}`
+      resumen.textContent = `${filtrados.length} tema${filtrados.length !== 1 ? 's' : ''} Â· ${recuentosPendientes ? 'calculando preguntas...' : totalPreguntas.toLocaleString('es-ES') + ' preguntas'}`
 
       if (filtrados.length === 0) {
         lista.classList.add('hidden')
         empty.classList.remove('hidden')
         document.getElementById('emptyMsg').textContent = todosLosTemas.length === 0
           ? 'Importa el Excel de temas primero.'
-          : 'Sin resultados para esa búsqueda.'
+          : 'Sin resultados para esa bÃºsqueda.'
         document.getElementById('emptyLink').style.display = todosLosTemas.length === 0 ? '' : 'none'
         return
       }
@@ -205,7 +212,7 @@
             ${temas.map(t => `
               <a href="./test.html?temas=${t.id}" class="block card-link">
                 <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
-                  <div class="bg-indigo-100 dark:bg-indigo-900/30 rounded-lg p-2 shrink-0">📖</div>
+                  <div class="bg-indigo-100 dark:bg-indigo-900/30 rounded-lg p-2 shrink-0">ðŸ“–</div>
                   <div class="flex-1 min-w-0">
                     <div class="mb-0.5">
                       <span class="text-[10px] font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-full">${t.codigo}</span>
@@ -216,7 +223,7 @@
                     <p class="text-lg font-bold text-gray-700 dark:text-gray-300">${t.preguntas_count === null ? '...' : (t.preguntas_count||0).toLocaleString('es-ES')}</p>
                     <p class="text-[10px] text-gray-400">pregs.</p>
                   </div>
-                  <span class="text-gray-300 dark:text-gray-600">›</span>
+                  <span class="text-gray-300 dark:text-gray-600">â€º</span>
                 </div>
               </a>`).join('')}
           </div>
