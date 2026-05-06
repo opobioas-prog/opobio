@@ -12,7 +12,7 @@
   <header id="appHeader"></header>
 
   <main class="max-w-2xl mx-auto px-4 pt-4 pb-32 space-y-5">
-    <p id="versionTest" class="text-[10px] text-gray-300 px-1">Test v20260506-6</p>
+    <p id="versionTest" class="text-[10px] text-gray-300 px-1">Test v20260506-7</p>
 
     <div>
       <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Numero de preguntas</h2>
@@ -67,8 +67,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/auth.js"></script>
-  <script src="./js/utils.js?v=20260506-6"></script>
-  <script src="./js/layout.js?v=20260506-6"></script>
+  <script src="./js/utils.js?v=20260506-7"></script>
+  <script src="./js/layout.js?v=20260506-7"></script>
   <script src="./js/shuffle.js"></script>
   <script>
     let temas = []
@@ -129,7 +129,7 @@
       temas = rows.map(t => ({
         ...t,
         preguntas_count: conteoDisponible ? Math.max(porId[t.id] || 0, porCodigo[t.codigo] || 0) : null,
-      }))
+      })).filter(t => t.preguntas_count === null || t.preguntas_count > 0)
 
       temasCargados = true
       document.getElementById('spinner').classList.add('hidden')
@@ -323,7 +323,7 @@
           respuestas: {},
           startedAt: new Date().toISOString(),
         })
-        window.location.href = `./test-activo.html?id=${intento.id}`
+        window.location.href = `./test-activo.html?id=${intento.id}&v=20260506-7`
       } catch (e) {
         toast('Error: ' + e.message, 'error', 6000)
         btn.disabled = false
