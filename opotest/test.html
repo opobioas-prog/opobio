@@ -102,14 +102,17 @@
 
     async function cargarTemas() {
       try {
-        const [{ data, error }, { data: counts }] = await Promise.all([
-          db.from('temas').select('*').order('grupo').order('codigo'),
-          db.from('preguntas').select('tema_id').eq('activa', true).eq('eliminada', false),
-        ])
+        const { data, error } = await db
+          .from('temas')
+          .select('*')
+          .order('grupo')
+          .order('codigo')
         if (error) throw error
 
-        const countMap = {}
-        ;(counts || []).forEach(p => { countMap[p.tema_id] = (countMap[p.tema_id] || 0) + 1 })
+        const countMap = await contarPreguntasPorTema((data || []).map(t => t.id), {
+          activa: true,
+          eliminada: false,
+        })
 
         temas = (data || []).map(t => ({
           ...t,
