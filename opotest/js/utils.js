@@ -64,6 +64,15 @@ function getParam(key) {
   return new URLSearchParams(window.location.search).get(key)
 }
 
+function conTiempoLimite(promise, ms = 10000, mensaje = 'La consulta ha tardado demasiado') {
+  let timeoutId
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(mensaje)), ms)
+  })
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId))
+}
+
 // Cuenta preguntas por tema sin descargar todas las filas al navegador.
 async function contarPreguntasPorTema(temaIds, filtros = {}) {
   const ids = [...new Set((temaIds || []).filter(Boolean))]
@@ -72,10 +81,14 @@ async function contarPreguntasPorTema(temaIds, filtros = {}) {
 
   if (puedeUsarRpc) {
     try {
-      const { data, error } = await db.rpc('conteo_preguntas_por_tema', {
-        p_activa: filtros.activa ?? null,
-        p_eliminada: filtros.eliminada ?? null,
-      })
+      const { data, error } = await conTiempoLimite(
+        db.rpc('conteo_preguntas_por_tema', {
+          p_activa: filtros.activa ?? null,
+          p_eliminada: filtros.eliminada ?? null,
+        }),
+        8000,
+        'El recuento agrupado de preguntas ha tardado demasiado'
+      )
       if (error) throw error
 
       ;(data || []).forEach(row => {
@@ -100,7 +113,11 @@ async function contarPreguntasPorTema(temaIds, filtros = {}) {
       if (filtros.activa !== undefined) query = query.eq('activa', filtros.activa)
       if (filtros.eliminada !== undefined) query = query.eq('eliminada', filtros.eliminada)
 
-      const { count, error } = await query
+      const { count, error } = await conTiempoLimite(
+        query,
+        8000,
+        'El recuento de preguntas ha tardado demasiado'
+      )
       if (error) throw error
       resultado[id] = count || 0
     })
