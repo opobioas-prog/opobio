@@ -3,7 +3,11 @@
 // Redirige a index.html si no hay sesión activa.
 
 async function requireAuth() {
-  const { data: { session } } = await db.auth.getSession()
+  const authRequest = db.auth.getSession()
+  const timeout = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('No se pudo comprobar la sesión. Recarga la página o inicia sesión de nuevo.')), 10000)
+  })
+  const { data: { session } } = await Promise.race([authRequest, timeout])
   if (!session) {
     window.location.replace('./index.html')
     return null

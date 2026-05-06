@@ -128,6 +128,37 @@ async function contarPreguntasPorTema(temaIds, filtros = {}) {
   return resultado
 }
 
+async function contarPreguntasPorCodigo(codigos, filtros = {}) {
+  const keys = [...new Set((codigos || []).filter(Boolean))]
+  const resultado = Object.fromEntries(keys.map(codigo => [codigo, 0]))
+  const batchSize = 8
+
+  for (let i = 0; i < keys.length; i += batchSize) {
+    const lote = keys.slice(i, i + batchSize)
+    const consultas = lote.map(async codigo => {
+      let query = db
+        .from('preguntas')
+        .select('id', { count: 'exact', head: true })
+        .eq('codigo_tema', codigo)
+
+      if (filtros.activa !== undefined) query = query.eq('activa', filtros.activa)
+      if (filtros.eliminada !== undefined) query = query.eq('eliminada', filtros.eliminada)
+
+      const { count, error } = await conTiempoLimite(
+        query,
+        8000,
+        'El recuento de preguntas por código ha tardado demasiado'
+      )
+      if (error) throw error
+      resultado[codigo] = count || 0
+    })
+
+    await Promise.all(consultas)
+  }
+
+  return resultado
+}
+
 // ── Sesión de test (localStorage) ────────────────────
 
 const SESSION_KEY = id => `opotest_session_${id}`
