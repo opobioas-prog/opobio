@@ -12,16 +12,24 @@
   <header id="appHeader"></header>
 
   <main class="max-w-2xl mx-auto px-4 pt-4 pb-32 space-y-4">
-    <p class="text-[10px] text-gray-300 px-1">Falladas v20260506-10</p>
+    <p class="text-[10px] text-gray-300 px-1">Falladas v20260506-11</p>
     <div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 rounded-xl p-4">
       <p class="text-sm text-orange-700 dark:text-orange-300">Preguntas ordenadas de menor a mayor tasa de acierto.</p>
     </div>
 
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3">
+      <label for="filtroTema" class="block text-xs text-gray-400 mb-1.5">Tema</label>
+      <select id="filtroTema" onchange="setFiltroTema(this.value)"
+        class="w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <option value="">Todos los temas</option>
+      </select>
+    </div>
+
     <div class="flex items-center gap-2">
       <span class="text-xs text-gray-400">Top:</span>
-      <button onclick="setLimite(20)" data-l="20" class="limite-btn px-2.5 py-1 rounded-lg text-xs font-medium">20</button>
-      <button onclick="setLimite(50)" data-l="50" class="limite-btn px-2.5 py-1 rounded-lg text-xs font-medium">50</button>
-      <button onclick="setLimite(100)" data-l="100" class="limite-btn px-2.5 py-1 rounded-lg text-xs font-medium">100</button>
+      <button onclick="setLimite(20, true)" data-l="20" class="limite-btn px-2.5 py-1 rounded-lg text-xs font-medium">20</button>
+      <button onclick="setLimite(50, true)" data-l="50" class="limite-btn px-2.5 py-1 rounded-lg text-xs font-medium">50</button>
+      <button onclick="setLimite(100, true)" data-l="100" class="limite-btn px-2.5 py-1 rounded-lg text-xs font-medium">100</button>
       <button onclick="cargar()" class="ml-auto text-xs text-indigo-600 dark:text-indigo-400 font-medium">Recargar</button>
     </div>
 
@@ -50,10 +58,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="./js/config.js?v=20260506-10"></script>
   <script src="./js/auth.js?v=20260506-10"></script>
-  <script src="./js/utils.js?v=20260506-10"></script>
-  <script src="./js/layout.js?v=20260506-10"></script>
+  <script src="./js/utils.js?v=20260506-11"></script>
+  <script src="./js/layout.js?v=20260506-11"></script>
   <script>
     let falladas = []
+    let temasFiltro = []
+    let filtroTema = ''
     let limite = 20
 
     ;(async () => {
@@ -61,11 +71,39 @@
         await requireAuth()
         initLayout('falladas', 'Falladas', './dashboard.html?v=20260506-10')
         setLimite(20)
+        await cargarTemasFiltro()
         await cargar()
       } catch (e) {
         mostrarError(e.message || 'No se pudieron cargar falladas.')
       }
     })()
+
+    async function cargarTemasFiltro() {
+      const { data, error } = await db.from('estadisticas_preguntas')
+        .select('codigo_tema,tema,veces_mostrada')
+        .gt('veces_mostrada', 0)
+      if (error) throw error
+
+      const mapa = new Map()
+      ;(data || []).forEach(s => {
+        const codigo = s.codigo_tema || ''
+        if (!codigo) return
+        if (!mapa.has(codigo)) mapa.set(codigo, { codigo, tema: s.tema || '', total: 0 })
+        mapa.get(codigo).total++
+      })
+      temasFiltro = [...mapa.values()].sort((a, b) => a.codigo.localeCompare(b.codigo, 'es', { numeric: true }))
+
+      const select = document.getElementById('filtroTema')
+      select.innerHTML = ''
+      select.appendChild(new Option('Todos los temas', ''))
+      temasFiltro.forEach(t => select.appendChild(new Option(`${t.codigo} - ${t.tema} (${t.total})`, t.codigo)))
+      select.value = filtroTema
+    }
+
+    function setFiltroTema(codigo) {
+      filtroTema = codigo
+      cargar()
+    }
 
     async function cargar() {
       document.getElementById('spinner').classList.remove('hidden')
@@ -74,11 +112,14 @@
       document.getElementById('errorBox').classList.add('hidden')
 
       try {
-        const { data, error } = await db.from('estadisticas_preguntas')
+        let query = db.from('estadisticas_preguntas')
           .select('*')
           .gt('veces_mostrada', 0)
-          .order('tasa_acierto', { ascending: true })
-          .limit(limite)
+
+        if (filtroTema) query = query.eq('codigo_tema', filtroTema)
+        query = query.order('tasa_acierto', { ascending: true }).limit(limite)
+
+        const { data, error } = await query
         if (error) throw error
 
         falladas = (data || []).map(s => ({
@@ -96,13 +137,14 @@
       }
     }
 
-    function setLimite(l) {
+    function setLimite(l, recargar = false) {
       limite = l
       document.querySelectorAll('.limite-btn').forEach(b => {
         b.className = `limite-btn px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
           Number(b.dataset.l) === l ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
         }`
       })
+      if (recargar) cargar()
     }
 
     function renderFalladas() {
