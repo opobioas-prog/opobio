@@ -64,27 +64,50 @@
 
     async function cargarTemas() {
       try {
-        const { data, error } = await db
-          .from('temas')
-          .select('*')
-          .order('grupo')
-          .order('codigo')
+        const { data, error } = await conTiempoLimite(
+          db
+            .from('temas')
+            .select('*')
+            .order('grupo')
+            .order('codigo'),
+          10000,
+          'La carga de temas ha tardado demasiado'
+        )
         if (error) throw error
-
-        const countMap = await contarPreguntasPorTema((data || []).map(t => t.id), { activa: true })
 
         todosLosTemas = (data || []).map(t => ({
           ...t,
-          preguntas_count: countMap[t.id] || 0,
+          preguntas_count: null,
         }))
 
         renderGrupos()
         renderLista()
+        document.getElementById('spinner').classList.add('hidden')
+        cargarRecuentosTemas()
       } catch (e) {
         console.error(e)
-        toast('Error al cargar temas', 'error')
+        toast('Error al cargar temas: ' + e.message, 'error', 5000)
       } finally {
         document.getElementById('spinner').classList.add('hidden')
+      }
+    }
+
+    async function cargarRecuentosTemas() {
+      try {
+        const countMap = await contarPreguntasPorTema(todosLosTemas.map(t => t.id), { activa: true })
+        todosLosTemas = todosLosTemas.map(t => ({
+          ...t,
+          preguntas_count: countMap[t.id] || 0,
+        }))
+        renderLista()
+      } catch (e) {
+        console.error(e)
+        toast('Temas cargados. No se pudieron cargar los recuentos.', 'warning', 5000)
+        todosLosTemas = todosLosTemas.map(t => ({
+          ...t,
+          preguntas_count: 0,
+        }))
+        renderLista()
       }
     }
 
@@ -125,7 +148,9 @@
       const empty  = document.getElementById('empty')
       const resumen = document.getElementById('resumen')
 
-      resumen.textContent = `${filtrados.length} tema${filtrados.length !== 1 ? 's' : ''} · ${filtrados.reduce((s,t) => s + (t.preguntas_count||0), 0).toLocaleString('es-ES')} preguntas`
+      const recuentosPendientes = filtrados.some(t => t.preguntas_count === null)
+      const totalPreguntas = filtrados.reduce((s,t) => s + (t.preguntas_count || 0), 0)
+      resumen.textContent = `${filtrados.length} tema${filtrados.length !== 1 ? 's' : ''} · ${recuentosPendientes ? 'calculando preguntas...' : totalPreguntas.toLocaleString('es-ES') + ' preguntas'}`
 
       if (filtrados.length === 0) {
         lista.classList.add('hidden')
@@ -161,7 +186,7 @@
                     <p class="text-sm font-medium text-gray-900 dark:text-white leading-snug">${t.tema}</p>
                   </div>
                   <div class="shrink-0 text-right">
-                    <p class="text-lg font-bold text-gray-700 dark:text-gray-300">${(t.preguntas_count||0).toLocaleString('es-ES')}</p>
+                    <p class="text-lg font-bold text-gray-700 dark:text-gray-300">${t.preguntas_count === null ? '...' : (t.preguntas_count||0).toLocaleString('es-ES')}</p>
                     <p class="text-[10px] text-gray-400">pregs.</p>
                   </div>
                   <span class="text-gray-300 dark:text-gray-600">›</span>

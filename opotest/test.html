@@ -102,17 +102,25 @@
 
     async function cargarTemas() {
       try {
-        const { data, error } = await db
-          .from('temas')
-          .select('*')
-          .order('grupo')
-          .order('codigo')
+        const { data, error } = await conTiempoLimite(
+          db
+            .from('temas')
+            .select('*')
+            .order('grupo')
+            .order('codigo'),
+          10000,
+          'La carga de temas ha tardado demasiado'
+        )
         if (error) throw error
 
-        const countMap = await contarPreguntasPorTema((data || []).map(t => t.id), {
-          activa: true,
-          eliminada: false,
-        })
+        const countMap = await conTiempoLimite(
+          contarPreguntasPorTema((data || []).map(t => t.id), {
+            activa: true,
+            eliminada: false,
+          }),
+          12000,
+          'El recuento de preguntas ha tardado demasiado'
+        )
 
         temas = (data || []).map(t => ({
           ...t,
@@ -121,7 +129,10 @@
 
         renderGrupos()
         renderTemas()
-      } catch (e) { toast('Error al cargar temas', 'error') }
+      } catch (e) {
+        console.error(e)
+        toast('Error al cargar temas: ' + e.message, 'error', 5000)
+      }
       finally { document.getElementById('spinner').classList.add('hidden') }
     }
 
