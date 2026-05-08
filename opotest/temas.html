@@ -20,7 +20,7 @@
     </div>
 
     <div id="gruposFiltro" class="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4"></div>
-    <p id="resumen" class="text-xs text-gray-400 px-1">Temas v20260506-10</p>
+    <p id="resumen" class="text-xs text-gray-400 px-1">Temas v20260508-1</p>
 
     <div id="spinner" class="flex justify-center py-16"><div class="spinner"></div></div>
     <div id="lista" class="hidden space-y-5"></div>
@@ -35,13 +35,14 @@
   <nav id="bottomNav"></nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="./js/config.js?v=20260506-10"></script>
-  <script src="./js/auth.js?v=20260506-10"></script>
-  <script src="./js/utils.js?v=20260506-10"></script>
-  <script src="./js/layout.js?v=20260506-10"></script>
+  <script src="./js/config.js?v=20260508-1"></script>
+  <script src="./js/auth.js?v=20260508-1"></script>
+  <script src="./js/utils.js?v=20260508-1"></script>
+  <script src="./js/layout.js?v=20260508-1"></script>
   <script>
     let todosLosTemas = []
     let grupoActivo = ''
+    let eliminandoTemaId = null
 
     ;(async () => {
       const watchdog = setTimeout(() => {
@@ -141,7 +142,7 @@
       const resumen = document.getElementById('resumen')
       const pendientes = filtrados.some(t => t.preguntas_count === null)
       const total = filtrados.reduce((s, t) => s + (t.preguntas_count || 0), 0)
-      resumen.textContent = `Temas v20260506-10 - ${filtrados.length} temas - ${pendientes ? 'calculando preguntas' : total.toLocaleString('es-ES') + ' preguntas'}`
+      resumen.textContent = `Temas v20260508-1 - ${filtrados.length} temas - ${pendientes ? 'calculando preguntas' : total.toLocaleString('es-ES') + ' preguntas'}`
 
       if (!filtrados.length) {
         lista.classList.add('hidden')
@@ -176,12 +177,11 @@
     }
 
     function crearCardTema(t) {
-      const a = document.createElement('a')
-      a.href = `./test.html?temas=${encodeURIComponent(t.id)}`
-      a.className = 'block card-link'
-
       const card = document.createElement('div')
-      card.className = 'bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3'
+      card.className = 'bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3 space-y-3'
+
+      const top = document.createElement('div')
+      top.className = 'flex items-center gap-3'
 
       const left = document.createElement('div')
       left.className = 'flex-1 min-w-0'
@@ -200,10 +200,68 @@
       right.appendChild(count)
       right.appendChild(label)
 
-      card.appendChild(left)
-      card.appendChild(right)
-      a.appendChild(card)
-      return a
+      top.appendChild(left)
+      top.appendChild(right)
+      card.appendChild(top)
+
+      const actions = document.createElement('div')
+      actions.className = 'flex gap-2'
+
+      const btnTest = document.createElement('a')
+      btnTest.href = `./test.html?v=20260508-1&temas=${encodeURIComponent(t.id)}`
+      btnTest.className = 'flex-1 min-h-[40px] rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold flex items-center justify-center'
+      btnTest.textContent = 'Hacer test'
+
+      const btnDelete = document.createElement('button')
+      btnDelete.type = 'button'
+      btnDelete.disabled = !t.preguntas_count || eliminandoTemaId === t.id
+      btnDelete.className = `min-h-[40px] px-3 rounded-lg text-sm font-semibold ${
+        btnDelete.disabled
+          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400'
+          : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30'
+      }`
+      btnDelete.textContent = eliminandoTemaId === t.id ? 'Eliminando...' : 'Eliminar preguntas'
+      btnDelete.addEventListener('click', () => eliminarPreguntasTema(t))
+
+      actions.appendChild(btnTest)
+      actions.appendChild(btnDelete)
+      card.appendChild(actions)
+      return card
+    }
+
+    async function eliminarPreguntasTema(t) {
+      const total = t.preguntas_count || 0
+      if (!total || eliminandoTemaId) return
+
+      const texto = window.prompt(`Vas a marcar como eliminadas ${total} preguntas disponibles del tema ${t.codigo}.\n\nEscribe ${t.codigo} para confirmar.`)
+      if (texto !== t.codigo) return
+
+      eliminandoTemaId = t.id
+      renderLista()
+
+      try {
+        const { error: e1 } = await db.from('preguntas')
+          .update({ eliminada: true })
+          .eq('tema_id', t.id)
+          .eq('activa', true)
+          .eq('eliminada', false)
+        if (e1) throw e1
+
+        const { error: e2 } = await db.from('preguntas')
+          .update({ eliminada: true })
+          .eq('codigo_tema', t.codigo)
+          .eq('activa', true)
+          .eq('eliminada', false)
+        if (e2) throw e2
+
+        todosLosTemas = todosLosTemas.map(tema => tema.id === t.id ? { ...tema, preguntas_count: 0 } : tema)
+        toast(`Preguntas del tema ${t.codigo} eliminadas.`, 'success', 3500)
+      } catch (e) {
+        toast('No se pudieron eliminar: ' + (e.message || e), 'error', 6000)
+      } finally {
+        eliminandoTemaId = null
+        renderLista()
+      }
     }
 
     function mostrarError(msg) {

@@ -39,7 +39,7 @@
   if (nav) {
     const items = [
       { page: 'dashboard', href: './dashboard.html', label: 'Inicio' },
-      { page: 'temas', href: './temas.html?v=20260506-10', label: 'Temas' },
+      { page: 'temas', href: './temas.html?v=20260508-1', label: 'Temas' },
       { page: 'importar', href: './importar.html', label: 'Importar' },
       { page: 'estadisticas', href: './estadisticas.html', label: 'Stats' },
       { page: 'falladas', href: './falladas.html', label: 'Falladas' },
