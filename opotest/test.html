@@ -12,7 +12,7 @@
   <header id="appHeader"></header>
 
   <main class="max-w-2xl mx-auto px-4 pt-4 pb-32 space-y-5">
-    <p id="versionTest" class="text-[10px] text-gray-300 px-1">Test v20260506-10</p>
+    <p id="versionTest" class="text-[10px] text-gray-300 px-1">Test v20260508-2</p>
 
     <div>
       <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Numero de preguntas</h2>
@@ -41,6 +41,7 @@
         <button id="btnToggleTodos" onclick="toggleTodos()" class="text-xs text-indigo-600 dark:text-indigo-400 font-medium disabled:opacity-40" disabled>Seleccionar todo</button>
       </div>
 
+      <div id="gruposFiltro" class="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 mb-3"></div>
       <div id="spinner" class="flex justify-center py-8"><div class="spinner"></div></div>
       <div id="errorBox" class="hidden text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 rounded-lg"></div>
       <div id="temasContainer" class="hidden space-y-4"></div>
@@ -76,6 +77,8 @@
     let cantidad = 20
     let incluirElim = false
     let temasCargados = false
+    let grupoActivo = ''
+    const gruposConRecuento = new Set()
 
     ;(async () => {
       const watchdog = setTimeout(() => {
@@ -86,6 +89,7 @@
         await requireAuth()
         initLayout('dashboard', 'Configurar test', './dashboard.html')
         setCantidad(20)
+        grupoActivo = getParam('grupo') || ''
         await cargarTemas()
 
         const preselect = getParam('temas')
@@ -117,24 +121,77 @@
         preguntas_count: null,
       }))
 
-      const filtros = { activa: true, eliminada: false }
-      const recuentos = await Promise.allSettled([
-        contarPreguntasPorTema(rows.map(t => t.id), filtros),
-        contarPreguntasPorCodigo(rows.map(t => t.codigo), filtros),
-      ])
-      const porId = recuentos[0].status === 'fulfilled' ? recuentos[0].value : {}
-      const porCodigo = recuentos[1].status === 'fulfilled' ? recuentos[1].value : {}
-      const conteoDisponible = recuentos.some(r => r.status === 'fulfilled')
+      temas = rows
+      renderGrupos()
 
-      temas = rows.map(t => ({
-        ...t,
-        preguntas_count: conteoDisponible ? Math.max(porId[t.id] || 0, porCodigo[t.codigo] || 0) : null,
-      })).filter(t => t.preguntas_count === null || t.preguntas_count > 0)
+      await cargarRecuentos(grupoActivo ? temas.filter(t => t.grupo === grupoActivo) : temas)
 
       temasCargados = true
       document.getElementById('spinner').classList.add('hidden')
       document.getElementById('btnToggleTodos').disabled = temas.length === 0
+      renderGrupos()
       renderTemas()
+    }
+
+    async function cargarRecuentos(listaTemas) {
+      const objetivo = (listaTemas || []).filter(t => t.preguntas_count === null)
+      if (!objetivo.length) return
+
+      const filtros = { activa: true, eliminada: false }
+      const recuentos = await Promise.allSettled([
+        contarPreguntasPorTema(objetivo.map(t => t.id), filtros),
+        contarPreguntasPorCodigo(objetivo.map(t => t.codigo), filtros),
+      ])
+      const porId = recuentos[0].status === 'fulfilled' ? recuentos[0].value : {}
+      const porCodigo = recuentos[1].status === 'fulfilled' ? recuentos[1].value : {}
+      const conteoDisponible = recuentos.some(r => r.status === 'fulfilled')
+      const idsContados = new Set(objetivo.map(t => t.id))
+
+      temas = temas
+        .map(t => idsContados.has(t.id)
+          ? { ...t, preguntas_count: conteoDisponible ? Math.max(porId[t.id] || 0, porCodigo[t.codigo] || 0) : null }
+          : t
+        )
+        .filter(t => !idsContados.has(t.id) || t.preguntas_count === null || t.preguntas_count > 0)
+
+      if (!grupoActivo) {
+        temas.forEach(t => gruposConRecuento.add(t.grupo))
+      } else {
+        gruposConRecuento.add(grupoActivo)
+      }
+    }
+
+    function renderGrupos() {
+      const cont = document.getElementById('gruposFiltro')
+      cont.innerHTML = ''
+      const grupos = ['', ...new Set(temas.map(t => t.grupo))]
+      grupos.forEach(g => {
+        const btn = document.createElement('button')
+        btn.type = 'button'
+        btn.textContent = g || 'Todos'
+        btn.dataset.grupo = g
+        btn.className = claseGrupo(g === grupoActivo)
+        btn.addEventListener('click', () => setGrupo(g))
+        cont.appendChild(btn)
+      })
+    }
+
+    function claseGrupo(activo) {
+      return `shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+        activo ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+      }`
+    }
+
+    async function setGrupo(g) {
+      grupoActivo = g
+      renderGrupos()
+      renderTemas()
+
+      if (g && !gruposConRecuento.has(g)) {
+        await cargarRecuentos(temas.filter(t => t.grupo === g))
+        renderGrupos()
+        renderTemas()
+      }
     }
 
     function renderTemas() {
@@ -154,7 +211,16 @@
       empty.classList.add('hidden')
       cont.classList.remove('hidden')
 
-      const porGrupo = temas.reduce((acc, t) => {
+      const temasFiltrados = grupoActivo ? temas.filter(t => t.grupo === grupoActivo) : temas
+
+      if (!temasFiltrados.length) {
+        cont.classList.add('hidden')
+        empty.classList.remove('hidden')
+        actualizarBoton()
+        return
+      }
+
+      const porGrupo = temasFiltrados.reduce((acc, t) => {
         ;(acc[t.grupo] = acc[t.grupo] || []).push(t)
         return acc
       }, {})
@@ -229,7 +295,8 @@
 
     function toggleTodos() {
       if (!temasCargados || !temas.length) return
-      const seleccionables = temas.filter(puedeSeleccionarse)
+      const visibles = grupoActivo ? temas.filter(t => t.grupo === grupoActivo) : temas
+      const seleccionables = visibles.filter(puedeSeleccionarse)
       const todos = seleccionables.every(t => seleccionados.has(t.id))
       seleccionables.forEach(t => todos ? seleccionados.delete(t.id) : seleccionados.add(t.id))
       renderTemas()
@@ -323,7 +390,7 @@
           respuestas: {},
           startedAt: new Date().toISOString(),
         })
-        window.location.href = `./test-activo.html?v=20260506-10&id=${intento.id}`
+        window.location.href = `./test-activo.html?v=20260508-2&id=${intento.id}`
       } catch (e) {
         toast('Error: ' + e.message, 'error', 6000)
         btn.disabled = false
