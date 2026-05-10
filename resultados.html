@@ -1,0 +1,239 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>OpoTest - Resultados</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <header id="appHeader"></header>
+
+  <main class="max-w-2xl mx-auto px-4 pt-4 pb-24 space-y-4">
+    <div id="spinner" class="flex justify-center py-20"><div class="spinner"></div></div>
+    <div id="errorBox" class="hidden text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 rounded-lg"></div>
+    <div id="contenido" class="hidden space-y-4 animate-slide"></div>
+  </main>
+
+  <nav id="bottomNav"></nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="./js/config.js?v=20260506-10"></script>
+  <script src="./js/auth.js?v=20260506-10"></script>
+  <script src="./js/utils.js?v=20260506-10"></script>
+  <script src="./js/layout.js?v=20260506-10"></script>
+  <script>
+    let respuestasGlobal = []
+
+    ;(async () => {
+      try {
+        await requireAuth()
+        initLayout('dashboard', 'Resultados', './dashboard.html?v=20260506-10')
+
+        const id = getParam('id')
+        if (!id) throw new Error('Falta el identificador del intento.')
+        eliminarSesion(id)
+
+        const [{ data: intento, error: e1 }, { data: respuestas, error: e2 }] = await Promise.all([
+          db.from('intentos_test').select('*').eq('id', id).single(),
+          db.from('respuestas_usuario').select('*, pregunta:preguntas(*)').eq('intento_test_id', id),
+        ])
+        if (e1) throw e1
+        if (e2) throw e2
+        if (!intento) throw new Error('No se encontro el intento.')
+
+        document.getElementById('spinner').classList.add('hidden')
+        renderResultados(intento, respuestas || [])
+      } catch (e) {
+        mostrarError(e.message || 'Error al cargar resultados.')
+      }
+    })()
+
+    function renderResultados(intento, respuestas) {
+      respuestasGlobal = respuestas
+      const cont = document.getElementById('contenido')
+      cont.classList.remove('hidden')
+
+      const porcentaje = Number(intento.porcentaje || 0)
+      const colorTxt = porcentaje >= 70 ? 'text-green-600 dark:text-green-400'
+        : porcentaje >= 50 ? 'text-yellow-600 dark:text-yellow-400'
+        : 'text-red-500 dark:text-red-400'
+      const colorBar = porcentaje >= 70 ? 'bg-green-500'
+        : porcentaje >= 50 ? 'bg-yellow-500'
+        : 'bg-red-500'
+
+      cont.innerHTML = ''
+      cont.appendChild(crearResumen(intento, porcentaje, colorTxt, colorBar))
+      cont.appendChild(crearStats(intento))
+      cont.appendChild(crearAcciones())
+      cont.appendChild(crearDetalle(intento))
+      filtrar('falladas')
+    }
+
+    function crearResumen(intento, porcentaje, colorTxt, colorBar) {
+      const box = document.createElement('div')
+      box.className = 'bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 text-center'
+      box.innerHTML = `
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Resultado</p>
+        <p class="text-6xl font-extrabold ${colorTxt}">${porcentaje}%</p>
+        <p class="text-xs text-gray-400 mt-1">${fmtFecha(intento.fecha)}</p>
+        <div class="progress-track mt-4 max-w-xs mx-auto"><div class="progress-fill ${colorBar}" style="width:${porcentaje}%"></div></div>`
+      return box
+    }
+
+    function crearStats(intento) {
+      const grid = document.createElement('div')
+      grid.className = 'grid grid-cols-4 gap-2'
+      grid.appendChild(miniStat('Total', intento.total_validas))
+      grid.appendChild(miniStat('Aciertos', intento.aciertos, 'text-green-600'))
+      grid.appendChild(miniStat('Fallos', intento.errores, 'text-red-500'))
+      grid.appendChild(miniStat('Omitidas', intento.eliminadas, 'text-gray-400'))
+      return grid
+    }
+
+    function crearAcciones() {
+      const grid = document.createElement('div')
+      grid.className = 'grid grid-cols-2 gap-3'
+      grid.innerHTML = `
+        <a href="./test.html?v=20260508-2"
+          class="flex items-center justify-center gap-2 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors text-sm">
+          Nuevo test
+        </a>
+        <a href="./dashboard.html?v=20260506-10"
+          class="flex items-center justify-center gap-2 min-h-[44px] bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-xl transition-colors text-sm">
+          Inicio
+        </a>`
+      return grid
+    }
+
+    function crearDetalle(intento) {
+      const wrap = document.createElement('div')
+      wrap.innerHTML = `
+        <div id="filtrosBtns" class="flex gap-2 mb-3">
+          <button onclick="filtrar('falladas')" data-f="falladas" class="filtro-btn px-3 py-1.5 rounded-full text-xs font-medium bg-indigo-600 text-white">Falladas (${intento.errores || 0})</button>
+          <button onclick="filtrar('acertadas')" data-f="acertadas" class="filtro-btn px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-500">Acertadas (${intento.aciertos || 0})</button>
+          <button onclick="filtrar('todas')" data-f="todas" class="filtro-btn px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-500">Todas</button>
+        </div>
+        <div id="listaRespuestas" class="space-y-2"></div>`
+      return wrap
+    }
+
+    function filtrar(modo) {
+      document.querySelectorAll('.filtro-btn').forEach(b => {
+        const active = b.dataset.f === modo
+        b.className = `filtro-btn px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+          active ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+        }`
+      })
+
+      const lista = respuestasGlobal.filter(r => {
+        if (modo === 'falladas') return r.correcta === false && !r.eliminada
+        if (modo === 'acertadas') return r.correcta === true
+        return true
+      })
+
+      const cont = document.getElementById('listaRespuestas')
+      cont.innerHTML = ''
+      if (!lista.length) {
+        const empty = document.createElement('div')
+        empty.className = 'text-center py-8 text-gray-400 text-sm'
+        empty.textContent = modo === 'falladas' ? 'No fallaste ninguna.' : 'Sin resultados.'
+        cont.appendChild(empty)
+        return
+      }
+      lista.forEach((r, i) => cont.appendChild(tarjetaRespuesta(r, i + 1)))
+    }
+
+    function tarjetaRespuesta(r, num) {
+      const p = r.pregunta
+      const card = document.createElement('div')
+      const border = r.eliminada ? 'border-l-gray-300' : r.correcta ? 'border-l-green-400' : 'border-l-red-400'
+      card.className = `bg-white dark:bg-gray-800 rounded-xl border-l-4 ${border} border border-gray-100 dark:border-gray-700 overflow-hidden`
+      if (!p) return card
+
+      const id = `det_${r.id}`
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'w-full flex items-start gap-3 px-4 py-3 text-left'
+      btn.addEventListener('click', () => document.getElementById(id).classList.toggle('hidden'))
+
+      const state = document.createElement('span')
+      state.className = 'shrink-0 mt-0.5 text-xs font-bold'
+      state.textContent = r.eliminada ? 'Omitida' : r.correcta ? 'OK' : 'KO'
+
+      const text = document.createElement('p')
+      text.className = 'flex-1 text-sm text-gray-800 dark:text-gray-200 leading-snug'
+      text.textContent = `${num}. ${p.pregunta}`
+
+      const arrow = document.createElement('span')
+      arrow.className = 'text-gray-300 shrink-0 mt-0.5'
+      arrow.textContent = 'v'
+
+      btn.appendChild(state)
+      btn.appendChild(text)
+      btn.appendChild(arrow)
+      card.appendChild(btn)
+
+      const detail = document.createElement('div')
+      detail.id = id
+      detail.className = 'hidden px-4 pb-3 space-y-1.5 border-t border-gray-50 dark:border-gray-700 pt-2 animate-fade'
+      ;['a', 'b', 'c', 'd'].forEach(op => detail.appendChild(filaOpcion(p, r, op)))
+
+      if (p.explicacion) {
+        const expl = document.createElement('div')
+        expl.className = 'mt-1 px-3 py-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-xs text-amber-800 dark:text-amber-200 leading-relaxed'
+        expl.textContent = p.explicacion
+        detail.appendChild(expl)
+      }
+
+      const codigo = document.createElement('span')
+      codigo.className = 'inline-block text-[10px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-full'
+      codigo.textContent = p.codigo_tema || ''
+      detail.appendChild(codigo)
+
+      card.appendChild(detail)
+      return card
+    }
+
+    function filaOpcion(p, r, op) {
+      const row = document.createElement('div')
+      const esCorrecta = op === p.respuesta_correcta
+      const esMia = op === r.respuesta && !esCorrecta
+      row.className = `flex items-start gap-2 text-xs rounded-lg px-2.5 py-2 ${
+        esCorrecta ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 font-medium' :
+        esMia ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' :
+        'text-gray-500 dark:text-gray-400'
+      }`
+
+      const letter = document.createElement('span')
+      letter.className = 'font-bold shrink-0'
+      letter.textContent = `${op.toUpperCase()}.`
+      const text = document.createElement('span')
+      text.className = 'leading-relaxed'
+      text.textContent = p[`opcion_${op}`] || ''
+
+      row.appendChild(letter)
+      row.appendChild(text)
+      return row
+    }
+
+    function miniStat(label, val, color = 'text-gray-800 dark:text-white') {
+      const box = document.createElement('div')
+      box.className = 'bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-2 text-center'
+      box.innerHTML = `<p class="text-xl font-bold ${color}"></p><p class="text-[10px] text-gray-400"></p>`
+      box.querySelector('p:first-child').textContent = val ?? 0
+      box.querySelector('p:last-child').textContent = label
+      return box
+    }
+
+    function mostrarError(msg) {
+      document.getElementById('spinner').classList.add('hidden')
+      const box = document.getElementById('errorBox')
+      box.textContent = msg
+      box.classList.remove('hidden')
+    }
+  </script>
+</body>
+</html>
