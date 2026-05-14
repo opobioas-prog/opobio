@@ -38,7 +38,7 @@
       <div id="errorBox" class="hidden text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 rounded-lg"></div>
 
       <div id="preguntaWrap" class="hidden space-y-4 animate-slide">
-        <p class="text-[10px] text-gray-300">Test activo v20260506-10</p>
+        <p class="text-[10px] text-gray-300">Test activo v20260510-1</p>
 
         <div id="enunciadoCard" class="rounded-2xl px-5 py-5 border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700">
           <p id="codigoTema" class="text-xs font-mono text-gray-400 mb-3"></p>
@@ -165,8 +165,9 @@
       const cont = document.getElementById('opciones')
       cont.innerHTML = ''
       const yaResp = !!res && !res.eliminada
+      const orden = obtenerOrdenOpciones(p)
 
-      LETRAS.forEach(op => {
+      orden.forEach((op, index) => {
         const btn = document.createElement('button')
         btn.type = 'button'
         btn.disabled = yaResp
@@ -175,7 +176,7 @@
 
         const letra = document.createElement('span')
         letra.className = 'shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-        letra.textContent = LABEL[op]
+        letra.textContent = LABEL[LETRAS[index]]
 
         const texto = document.createElement('span')
         texto.className = 'flex-1 text-sm leading-snug pt-1 text-gray-800 dark:text-gray-200'
@@ -185,6 +186,29 @@
         btn.appendChild(texto)
         cont.appendChild(btn)
       })
+    }
+
+    function obtenerOrdenOpciones(p) {
+      const disponibles = LETRAS.filter(op => p['opcion_' + op])
+      const ordenValido = Array.isArray(p.orden_opciones)
+        && p.orden_opciones.length === disponibles.length
+        && disponibles.every(op => p.orden_opciones.includes(op))
+
+      if (!ordenValido) {
+        p.orden_opciones = mezclarOpciones(disponibles)
+        guardarSesion(sesion)
+      }
+
+      return p.orden_opciones
+    }
+
+    function mezclarOpciones(opciones) {
+      const mezcladas = [...opciones]
+      for (let i = mezcladas.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[mezcladas[i], mezcladas[j]] = [mezcladas[j], mezcladas[i]]
+      }
+      return mezcladas
     }
 
     function claseOpcion(p, res, op, yaResp) {
