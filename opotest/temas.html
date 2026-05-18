@@ -20,7 +20,7 @@
     </div>
 
     <div id="gruposFiltro" class="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4"></div>
-    <p id="resumen" class="text-xs text-gray-400 px-1">Temas v20260508-1</p>
+    <p id="resumen" class="text-xs text-gray-400 px-1">Temas v20260518-3</p>
 
     <div id="spinner" class="flex justify-center py-16"><div class="spinner"></div></div>
     <div id="lista" class="hidden space-y-5"></div>
@@ -142,7 +142,7 @@
       const resumen = document.getElementById('resumen')
       const pendientes = filtrados.some(t => t.preguntas_count === null)
       const total = filtrados.reduce((s, t) => s + (t.preguntas_count || 0), 0)
-      resumen.textContent = `Temas v20260508-1 - ${filtrados.length} temas - ${pendientes ? 'calculando preguntas' : total.toLocaleString('es-ES') + ' preguntas'}`
+      resumen.textContent = `Temas v20260518-3 - ${filtrados.length} temas - ${pendientes ? 'calculando preguntas' : total.toLocaleString('es-ES') + ' preguntas'}`
 
       if (!filtrados.length) {
         lista.classList.add('hidden')
@@ -178,54 +178,57 @@
 
     function crearCardTema(t) {
       const card = document.createElement('div')
-      card.className = 'bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3 space-y-3'
+      card.className = 'bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3'
 
       const top = document.createElement('div')
-      top.className = 'flex items-center gap-3'
+      top.className = 'flex items-start gap-3'
 
-      const left = document.createElement('div')
-      left.className = 'flex-1 min-w-0'
-      left.innerHTML = `<div class="mb-0.5"><span class="text-[10px] font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-full"></span></div><p class="text-sm font-medium text-gray-900 dark:text-white leading-snug"></p>`
-      left.querySelector('span').textContent = t.codigo
-      left.querySelector('p').textContent = t.tema
+      const controls = document.createElement('div')
+      controls.className = 'shrink-0 w-[86px] flex flex-col items-center gap-1.5'
 
-      const right = document.createElement('div')
-      right.className = 'shrink-0 text-right'
-      const count = document.createElement('p')
-      count.className = 'text-lg font-bold text-gray-700 dark:text-gray-300'
-      count.textContent = t.preguntas_count === null ? '...' : (t.preguntas_count || 0).toLocaleString('es-ES')
-      const label = document.createElement('p')
-      label.className = 'text-[10px] text-gray-400'
-      label.textContent = 'pregs.'
-      right.appendChild(count)
-      right.appendChild(label)
-
-      top.appendChild(left)
-      top.appendChild(right)
-      card.appendChild(top)
-
-      const actions = document.createElement('div')
-      actions.className = 'flex gap-2'
+      const code = document.createElement('span')
+      code.className = 'w-full min-h-[24px] truncate text-center text-[10px] font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-1 rounded-lg'
+      code.textContent = t.codigo
 
       const btnTest = document.createElement('a')
       btnTest.href = `./test.html?v=20260508-2&temas=${encodeURIComponent(t.id)}&grupo=${encodeURIComponent(t.grupo)}`
-      btnTest.className = 'flex-1 min-h-[40px] rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold flex items-center justify-center'
-      btnTest.textContent = 'Hacer test'
+      btnTest.className = 'w-full min-h-[30px] px-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/25 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-xs font-semibold flex items-center justify-center'
+      btnTest.textContent = 'Test'
 
       const btnDelete = document.createElement('button')
       btnDelete.type = 'button'
       btnDelete.disabled = !t.preguntas_count || eliminandoTemaId === t.id
-      btnDelete.className = `min-h-[40px] px-3 rounded-lg text-sm font-semibold ${
+      btnDelete.className = `w-full min-h-[30px] px-2 rounded-lg text-xs font-semibold ${
         btnDelete.disabled
-          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400'
-          : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30'
+          ? 'text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-700/40'
+          : 'text-red-500 dark:text-red-300 bg-red-50 dark:bg-red-900/15 hover:bg-red-100 dark:hover:bg-red-900/30'
       }`
-      btnDelete.textContent = eliminandoTemaId === t.id ? 'Eliminando...' : 'Eliminar preguntas'
+      btnDelete.textContent = eliminandoTemaId === t.id ? '...' : 'Eliminar'
       btnDelete.addEventListener('click', () => eliminarPreguntasTema(t))
 
-      actions.appendChild(btnTest)
-      actions.appendChild(btnDelete)
-      card.appendChild(actions)
+      const countWrap = document.createElement('div')
+      countWrap.className = 'w-full pt-1 text-center'
+      const count = document.createElement('p')
+      count.className = 'text-base font-bold text-gray-700 dark:text-gray-300 leading-none'
+      count.textContent = t.preguntas_count === null ? '...' : (t.preguntas_count || 0).toLocaleString('es-ES')
+      const label = document.createElement('p')
+      label.className = 'text-[10px] text-gray-400'
+      label.textContent = 'pregs.'
+      countWrap.appendChild(count)
+      countWrap.appendChild(label)
+
+      controls.appendChild(code)
+      controls.appendChild(btnTest)
+      controls.appendChild(btnDelete)
+      controls.appendChild(countWrap)
+
+      const text = document.createElement('p')
+      text.className = 'flex-1 min-w-0 text-sm font-medium text-gray-900 dark:text-white leading-snug pt-0.5'
+      text.textContent = t.tema
+
+      top.appendChild(controls)
+      top.appendChild(text)
+      card.appendChild(top)
       return card
     }
 
