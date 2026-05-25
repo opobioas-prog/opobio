@@ -222,7 +222,7 @@
         if (e2) throw e2
 
         guardarSesion({ intentoId: intento.id, preguntas, currentIndex: 0, respuestas: {}, startedAt: new Date().toISOString() })
-        window.location.href = `./test-activo.html?v=20260510-1&id=${intento.id}`
+        window.location.href = `./test-activo.html?v=20260525-1&id=${intento.id}`
       } catch (e) {
         mostrarError(e.message || 'Error al iniciar test.')
         document.getElementById('btnPracticar').disabled = false
